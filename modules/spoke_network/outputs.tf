@@ -22,3 +22,8 @@ output "route_table_id" {
   value       = azurerm_route_table.spoke.id
   description = "Resource ID of the spoke route table."
 }
+
+output "nsg_id" {
+  value       = azurerm_network_security_group.spoke.id
+  description = "Resource ID of the spoke NSG (used for flow log enablement)."
+}

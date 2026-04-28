@@ -37,3 +37,18 @@ output "private_dns_zone_ids" {
   value       = module.private_dns.dns_zone_ids
   description = "Map of Private DNS zone name → resource ID."
 }
+
+output "log_analytics_workspace_name" {
+  value       = module.monitoring.workspace_name
+  description = "Name of the central Log Analytics workspace."
+}
+
+output "log_analytics_workspace_id" {
+  value       = module.monitoring.workspace_resource_id
+  description = "Resource ID of the central Log Analytics workspace."
+}
+
+output "monitoring_action_group_id" {
+  value       = module.monitoring.action_group_id
+  description = "Resource ID of the ops alert action group."
+}

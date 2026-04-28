@@ -44,3 +44,19 @@ resource "azurerm_subnet_route_table_association" "this" {
   subnet_id      = azurerm_subnet.this[each.key].id
   route_table_id = azurerm_route_table.spoke.id
 }
+
+# One NSG per spoke — no rules needed since all inter-spoke traffic is forced
+# through Azure Firewall via UDRs. The NSG exists for flow log capture.
+resource "azurerm_network_security_group" "spoke" {
+  name                = "nsg-${var.prefix}-${var.spoke_name}-${var.environment}-${var.location_short}"
+  location            = azurerm_resource_group.spoke.location
+  resource_group_name = azurerm_resource_group.spoke.name
+  tags                = var.tags
+}
+
+resource "azurerm_subnet_network_security_group_association" "this" {
+  for_each = azurerm_subnet.this
+
+  subnet_id                 = each.value.id
+  network_security_group_id = azurerm_network_security_group.spoke.id
+}

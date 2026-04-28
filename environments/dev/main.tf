@@ -146,6 +146,28 @@ module "hub_mgmt_peering" {
   peering_name_suffix       = "mgmt"
 }
 
+# ── Monitoring ────────────────────────────────────────────────────────────────
+
+module "monitoring" {
+  source = "../../modules/monitoring"
+
+  prefix              = local.prefix
+  environment         = local.environment
+  location            = local.location
+  location_short      = local.location_short
+  tags                = local.tags
+  resource_group_name = module.hub_network.resource_group_name
+  firewall_id         = module.firewall.firewall_id
+  bastion_id          = module.bastion.bastion_id
+  alert_email         = var.alert_email
+  log_retention_days  = 30
+
+  spoke_nsg_ids = {
+    app  = module.app_spoke.nsg_id
+    mgmt = module.mgmt_spoke.nsg_id
+  }
+}
+
 # ── Private DNS ───────────────────────────────────────────────────────────────
 
 module "private_dns" {
