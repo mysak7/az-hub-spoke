@@ -1,0 +1,5 @@
+subscription_id = ""
+environment     = "dev"
+location        = "swedencentral"
+location_short  = "sc"
+alert_email     = "ops@example.com"

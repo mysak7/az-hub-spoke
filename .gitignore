@@ -1,6 +1,17 @@
 consolidate_code.py
 full_codebase_context_tf.txt
 
-# ── OS / editor ───────────────────────────────────────────────────────────────
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+*_override.tf
+.terraform.tfstate.lock.info
+.terraform.lock.hcl
+.terraformrc
+terraform.rc
+
 ~$*
 ~*

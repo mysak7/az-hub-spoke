@@ -1,22 +1,22 @@
 resource "azurerm_public_ip" "firewall" {
-  name                = "pip-afw-${var.prefix}-${var.environment}-${var.location_short}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
+  name                = "pip-${var.environment}-${var.location_short}-afw"
+  resource_group_name = azurerm_resource_group.hub.name
+  location            = azurerm_resource_group.hub.location
   allocation_method   = "Static"
   sku                 = "Standard"
-  tags                = var.tags
+  tags                = local.tags
 }
 
 resource "azurerm_firewall_policy" "this" {
-  name                = "afwp-${var.prefix}-${var.environment}-${var.location_short}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  sku                 = var.sku_tier
-  tags                = var.tags
+  name                = "afwp-${var.environment}-${var.location_short}"
+  resource_group_name = azurerm_resource_group.hub.name
+  location            = azurerm_resource_group.hub.location
+  sku                 = "Standard"
+  tags                = local.tags
 }
 
 resource "azurerm_firewall_policy_rule_collection_group" "this" {
-  name               = "rcg-${var.prefix}-${var.environment}"
+  name               = "rcg-${var.environment}-${var.location_short}"
   firewall_policy_id = azurerm_firewall_policy.this.id
   priority           = 100
 
@@ -65,17 +65,17 @@ resource "azurerm_firewall_policy_rule_collection_group" "this" {
 }
 
 resource "azurerm_firewall" "this" {
-  name                = "afw-${var.prefix}-${var.environment}-${var.location_short}"
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  name                = "afw-${var.environment}-${var.location_short}"
+  location            = azurerm_resource_group.hub.location
+  resource_group_name = azurerm_resource_group.hub.name
   sku_name            = "AZFW_VNet"
-  sku_tier            = var.sku_tier
+  sku_tier            = "Standard"
   firewall_policy_id  = azurerm_firewall_policy.this.id
-  tags                = var.tags
+  tags                = local.tags
 
   ip_configuration {
     name                 = "ipconfig"
-    subnet_id            = var.firewall_subnet_id
+    subnet_id            = azurerm_subnet.hub_firewall.id
     public_ip_address_id = azurerm_public_ip.firewall.id
   }
 }
