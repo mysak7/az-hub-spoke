@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure Cloud Engineer — Interview Presentation</title>
+<style>
+  :root {
+    --azure:    #0078d4;
+    --azure-dk: #004578;
+    --azure-lt: #50e6ff;
+    --bg:       #0a0f1e;
+    --surface:  #111827;
+    --surface2: #1a2235;
+    --border:   #1e3a5f;
+    --text:     #e8f0fe;
+    --muted:    #8babc7;
+    --green:    #4ade80;
+    --orange:   #fb923c;
+    --purple:   #a78bfa;
+    --red:      #f87171;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  /* ── SLIDE ENGINE ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 48px 64px;
+    opacity: 0; pointer-events: none;
+    transform: translateX(60px);
+    transition: opacity .45s ease, transform .45s ease;
+  }
+  .slide.active {
+    opacity: 1; pointer-events: auto;
+    transform: translateX(0);
+  }
+  .slide.exit {
+    opacity: 0;
+    transform: translateX(-60px);
+    transition: opacity .3s ease, transform .3s ease;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(10,15,30,.85); border: 1px solid var(--border);
+    padding: 10px 20px; border-radius: 40px;
+    backdrop-filter: blur(12px); z-index: 100;
+  }
+  nav button {
+    background: none; border: none; color: var(--muted);
+    font-size: 18px; cursor: pointer; padding: 4px 8px;
+    border-radius: 6px; transition: color .2s, background .2s;
+  }
+  nav button:hover { color: var(--azure-lt); background: var(--surface2); }
+  nav button:disabled { opacity: .25; cursor: default; }
+  #counter { font-size: 13px; color: var(--muted); min-width: 52px; text-align: center; }
+
+  .dot-row { display: flex; gap: 6px; align-items: center; }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--border); cursor: pointer; transition: background .2s, transform .2s;
+  }
+  .dot.on { background: var(--azure-lt); transform: scale(1.4); }
+
+  /* ── COMMON ── */
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
+    color: var(--azure-lt); padding: 4px 12px;
+    border: 1px solid var(--border); border-radius: 20px;
+    background: rgba(0,120,212,.15); margin-bottom: 18px;
+  }
+  h1 { font-size: clamp(32px, 4vw, 52px); font-weight: 700; line-height: 1.1; }
+  h2 { font-size: clamp(22px, 2.6vw, 34px); font-weight: 700; margin-bottom: 6px; }
+  h3 { font-size: 16px; font-weight: 600; color: var(--azure-lt); margin-bottom: 8px; }
+  p  { line-height: 1.65; color: var(--muted); }
+
+  .accent { color: var(--azure-lt); }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 3px 10px; border-radius: 12px; margin: 3px;
+  }
+  .badge-blue   { background: rgba(0,120,212,.25); color: #50e6ff; border: 1px solid rgba(80,230,255,.3); }
+  .badge-green  { background: rgba(74,222,128,.15); color: #4ade80; border: 1px solid rgba(74,222,128,.3); }
+  .badge-orange { background: rgba(251,146,60,.15); color: #fb923c; border: 1px solid rgba(251,146,60,.3); }
+  .badge-purple { background: rgba(167,139,250,.15); color: #a78bfa; border: 1px solid rgba(167,139,250,.3); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px 24px;
+  }
+  .card-grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .g4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+  .icon { font-size: 26px; margin-bottom: 10px; display: block; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  .slide-header { margin-bottom: 32px; }
+  .content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+  /* ── SLIDE 1: TITLE ── */
+  #s1 { justify-content: center; position: relative; overflow: hidden; }
+  #s1::before {
+    content: '';
+    position: absolute; top: -120px; right: -120px;
+    width: 500px; height: 500px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,120,212,.35) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  #s1::after {
+    content: '';
+    position: absolute; bottom: -80px; left: -80px;
+    width: 350px; height: 350px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(80,230,255,.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .title-sub { font-size: 18px; color: var(--muted); margin: 16px 0 32px; }
+  .title-meta { display: flex; gap: 24px; flex-wrap: wrap; }
+  .title-meta span { font-size: 14px; color: var(--muted); }
+  .title-meta strong { color: var(--text); }
+
+  /* ── SLIDE 2: ABOUT ── */
+  .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; }
+  .skill-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .skill-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .skill-bar { height: 100%; background: linear-gradient(90deg, var(--azure), var(--azure-lt)); border-radius: 4px; }
+  .skill-label { font-size: 13px; color: var(--text); min-width: 110px; }
+  .skill-pct { font-size: 12px; color: var(--muted); min-width: 34px; text-align: right; }
+
+  /* ── SLIDE 3: ARCHITECTURE ── */
+  .arch-wrap { flex: 1; display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+  .arch-svg-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  svg text { font-family: 'Segoe UI', sans-serif; }
+  .arch-legend { display: flex; flex-direction: column; gap: 12px; }
+
+  /* ── SLIDE 4: COMPONENTS ── */
+
+  /* ── SLIDE 5: IaC ── */
+  .code-block {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px 18px; font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 12.5px; line-height: 1.7; overflow-x: auto;
+    color: #c9d1d9; flex: 1;
+  }
+  .kw  { color: #ff7b72; }
+  .str { color: #a5d6ff; }
+  .cmt { color: #8b949e; }
+  .fn  { color: #d2a8ff; }
+  .num { color: #79c0ff; }
+  .var { color: #ffa657; }
+
+  /* ── SLIDE 6: SECURITY ── */
+  .flow-row { display: flex; align-items: center; gap: 0; }
+  .flow-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px; font-size: 13px;
+    text-align: center; min-width: 110px;
+  }
+  .flow-arrow { color: var(--azure); font-size: 20px; padding: 0 8px; }
+
+  /* ── SLIDE 7: MONITORING ── */
+  .metric-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+  }
+  .metric-row:last-child { border-bottom: none; }
+  .sev { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .sev1 { background: rgba(248,113,113,.2); color: var(--red); }
+  .sev2 { background: rgba(251,146,60,.2); color: var(--orange); }
+  .sev3 { background: rgba(74,222,128,.2); color: var(--green); }
+
+  /* ── SLIDE 8: WHY ME ── */
+  .check-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 14px; list-style: none;
+  }
+  .check-list li:last-child { border-bottom: none; }
+  .chk { color: var(--green); font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+  .chk-text strong { color: var(--text); display: block; }
+  .chk-text span   { color: var(--muted); font-size: 12px; }
+
+  /* ── SLIDE 9: CLOSING ── */
+  #s9 { justify-content: center; text-align: center; position: relative; overflow: hidden; }
+  #s9::before {
+    content: '';
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 600px; height: 600px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,120,212,.2) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .big-icon { font-size: 64px; margin-bottom: 24px; }
+  .contact-row { display: flex; gap: 32px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+  .contact-item { font-size: 15px; color: var(--muted); }
+  .contact-item strong { color: var(--azure-lt); display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
+
+  /* ── PROGRESS BAR ── */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--azure), var(--azure-lt));
+    transition: width .4s ease; z-index: 200;
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<div class="deck">
+
+  <!-- ─────────────── SLIDE 1: TITLE ─────────────── -->
+  <section class="slide active" id="s1">
+    <div class="tag">☁ Azure Cloud Platform Engineer</div>
+    <h1>Enterprise Azure<br><span class="accent">Hub-and-Spoke</span><br>Infrastructure</h1>
+    <p class="title-sub">Designing, building & operating production-grade Azure environments with Terraform IaC, centralised security, and native cloud monitoring.</p>
+    <div class="title-meta">
+      <span><strong>Candidate</strong><br>Michal</span>
+      <span><strong>Stack</strong><br>Azure · Terraform · Bash · Azure CLI</span>
+      <span><strong>Project</strong><br>az-hub-spoke on GitHub</span>
+      <span><strong>Date</strong><br>May 2026</span>
+    </div>
+  </section>
+
+  <!-- ─────────────── SLIDE 2: ABOUT ─────────────── -->
+  <section class="slide" id="s2">
+    <div class="slide-header">
+      <div class="tag">👤 About Me</div>
+      <h2>Cloud & DevOps Engineer</h2>
+    </div>
+    <div class="about-grid content">
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <h3>What I do</h3>
+          <p style="font-size:14px">I design and manage cloud platforms end-to-end — from networking topology and security policy, through Infrastructure as Code, to monitoring and operational runbooks. I focus on getting the fundamentals right: reliable routing, least-privilege access, and observable systems.</p>
+        </div>
+        <div class="card">
+          <h3>Key Technologies</h3>
+          <div style="margin-top:4px">
+            <span class="badge badge-blue">MS Azure</span>
+            <span class="badge badge-blue">Terraform</span>
+            <span class="badge badge-blue">Azure CLI</span>
+            <span class="badge badge-blue">Bash</span>
+            <span class="badge badge-green">Azure Firewall</span>
+            <span class="badge badge-green">Azure Bastion</span>
+            <span class="badge badge-green">VNet Peering</span>
+            <span class="badge badge-green">Private DNS</span>
+            <span class="badge badge-orange">Log Analytics</span>
+            <span class="badge badge-orange">NSG Flow Logs</span>
+            <span class="badge badge-purple">AKS</span>
+            <span class="badge badge-purple">Key Vault</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Skill Profile</h3>
+        <div style="margin-top:8px">
+          <div class="skill-row"><span class="skill-label">MS Azure</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:88%"></div></div><span class="skill-pct">88%</span></div>
+          <div class="skill-row"><span class="skill-label">Networking</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:85%"></div></div><span class="skill-pct">85%</span></div>
+          <div class="skill-row"><span class="skill-label">Terraform IaC</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:82%"></div></div><span class="skill-pct">82%</span></div>
+          <div class="skill-row"><span class="skill-label">Bash / Azure CLI</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:80%"></div></div><span class="skill-pct">80%</span></div>
+          <div class="skill-row"><span class="skill-label">Monitoring</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:78%"></div></div><span class="skill-pct">78%</span></div>
+          <div class="skill-row"><span class="skill-label">AKS / Containers</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:70%"></div></div><span class="skill-pct">70%</span></div>
+          <div class="skill-row"><span class="skill-label">SQL / PostgreSQL</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:65%"></div></div><span class="skill-pct">65%</span></div>
+          <div class="skill-row"><span class="skill-label">Certificates / TLS</span><div class="skill-bar-wrap"><div class="skill-bar" style="width:72%"></div></div><span class="skill-pct">72%</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── SLIDE 3: ARCHITECTURE ─────────────── -->
+  <section class="slide" id="s3">
+    <div class="slide-header">
+      <div class="tag">🏗 Architecture</div>
+      <h2>Hub-and-Spoke Network Topology</h2>
+      <p>Centralised security, routing and access management across multiple workload VNets.</p>
+    </div>
+    <div class="arch-wrap content">
+      <div class="arch-svg-wrap">
+        <svg viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#0078d4"/>
+            </marker>
+            <marker id="arr2" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+              <polygon points="8 0, 0 3, 8 6" fill="#0078d4"/>
+            </marker>
+          </defs>
+
+          <!-- Hub VNet -->
+          <rect x="220" y="120" width="240" height="160" rx="12" fill="none" stroke="#0078d4" stroke-width="2" stroke-dasharray="6,3"/>
+          <text x="340" y="108" text-anchor="middle" fill="#50e6ff" font-size="11" font-weight="600">HUB VNet  10.0.0.0/16</text>
+
+          <!-- Hub components -->
+          <rect x="232" y="132" width="100" height="36" rx="6" fill="#1a2235" stroke="#004578" stroke-width="1"/>
+          <text x="282" y="154" text-anchor="middle" fill="#fb923c" font-size="10" font-weight="600">🔥 Azure Firewall</text>
+          <text x="282" y="164" text-anchor="middle" fill="#8babc7" font-size="9">10.0.1.0/26</text>
+
+          <rect x="348" y="132" width="100" height="36" rx="6" fill="#1a2235" stroke="#004578" stroke-width="1"/>
+          <text x="398" y="154" text-anchor="middle" fill="#4ade80" font-size="10" font-weight="600">🔐 Bastion</text>
+          <text x="398" y="164" text-anchor="middle" fill="#8babc7" font-size="9">10.0.2.0/26</text>
+
+          <rect x="232" y="182" width="100" height="36" rx="6" fill="#1a2235" stroke="#004578" stroke-width="1"/>
+          <text x="282" y="204" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">🌐 Shared Svcs</text>
+          <text x="282" y="214" text-anchor="middle" fill="#8babc7" font-size="9">10.0.3.0/24</text>
+
+          <rect x="348" y="182" width="100" height="36" rx="6" fill="#1a2235" stroke="#004578" stroke-width="1"/>
+          <text x="398" y="204" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">🔤 DNS</text>
+          <text x="398" y="214" text-anchor="middle" fill="#8babc7" font-size="9">10.0.4.0/24</text>
+
+          <!-- UDR labels on hub -->
+          <rect x="232" y="232" width="216" height="36" rx="6" fill="#0a1628" stroke="#1e3a5f" stroke-width="1"/>
+          <text x="340" y="250" text-anchor="middle" fill="#8babc7" font-size="9">Private DNS Zones</text>
+          <text x="340" y="261" text-anchor="middle" fill="#8babc7" font-size="9">privatelink.blob.core.windows.net · privatelink.vaultcore.azure.net</text>
+
+          <!-- App Spoke -->
+          <rect x="30" y="30" width="160" height="130" rx="12" fill="none" stroke="#1e3a5f" stroke-width="1.5"/>
+          <text x="110" y="20" text-anchor="middle" fill="#50e6ff" font-size="10" font-weight="600">APP Spoke  10.1.0.0/16</text>
+          <rect x="42" y="38" width="136" height="26" rx="5" fill="#1a2235" stroke="#1e3a5f"/>
+          <text x="110" y="56" text-anchor="middle" fill="#e8f0fe" font-size="9">sn-web  10.1.1.0/24</text>
+          <rect x="42" y="72" width="136" height="26" rx="5" fill="#1a2235" stroke="#1e3a5f"/>
+          <text x="110" y="90" text-anchor="middle" fill="#e8f0fe" font-size="9">sn-app  10.1.2.0/24</text>
+          <rect x="42" y="106" width="136" height="26" rx="5" fill="#1a2235" stroke="#1e3a5f"/>
+          <text x="110" y="124" text-anchor="middle" fill="#e8f0fe" font-size="9">sn-pep  10.1.10.0/24</text>
+          <text x="42" y="145" fill="#fb923c" font-size="8">↑ UDR → Firewall</text>
+
+          <!-- Mgmt Spoke -->
+          <rect x="30" y="220" width="160" height="110" rx="12" fill="none" stroke="#1e3a5f" stroke-width="1.5"/>
+          <text x="110" y="210" text-anchor="middle" fill="#50e6ff" font-size="10" font-weight="600">MGMT Spoke  10.2.0.0/16</text>
+          <rect x="42" y="228" width="136" height="26" rx="5" fill="#1a2235" stroke="#1e3a5f"/>
+          <text x="110" y="246" text-anchor="middle" fill="#e8f0fe" font-size="9">sn-tools  10.2.1.0/24</text>
+          <rect x="42" y="262" width="136" height="26" rx="5" fill="#1a2235" stroke="#1e3a5f"/>
+          <text x="110" y="280" text-anchor="middle" fill="#e8f0fe" font-size="9">sn-jump   10.2.2.0/24</text>
+          <text x="42" y="310" fill="#fb923c" font-size="8">↑ UDR → Firewall</text>
+
+          <!-- Internet box -->
+          <rect x="510" y="170" width="130" height="44" rx="10" fill="#111827" stroke="#004578" stroke-width="1.5"/>
+          <text x="575" y="196" text-anchor="middle" fill="#50e6ff" font-size="11" font-weight="600">🌍 Internet</text>
+
+          <!-- Peering lines App ↔ Hub -->
+          <line x1="190" y1="80" x2="220" y2="180" stroke="#0078d4" stroke-width="1.5" marker-end="url(#arr)" marker-start="url(#arr2)"/>
+          <text x="196" y="130" fill="#0078d4" font-size="9" transform="rotate(-25,196,130)">VNet Peering</text>
+
+          <!-- Peering lines Mgmt ↔ Hub -->
+          <line x1="190" y1="270" x2="220" y2="220" stroke="#0078d4" stroke-width="1.5" marker-end="url(#arr)" marker-start="url(#arr2)"/>
+          <text x="186" y="255" fill="#0078d4" font-size="9" transform="rotate(25,186,255)">VNet Peering</text>
+
+          <!-- Firewall → Internet -->
+          <line x1="460" y1="150" x2="510" y2="192" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arr)"/>
+          <text x="480" y="170" fill="#fb923c" font-size="9">Egress</text>
+
+          <!-- Bastion label -->
+          <text x="398" y="184" text-anchor="middle" fill="#4ade80" font-size="8"></text>
+
+          <!-- Monitor box -->
+          <rect x="510" y="260" width="130" height="60" rx="10" fill="#111827" stroke="#1e3a5f" stroke-width="1"/>
+          <text x="575" y="284" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">📊 Monitor</text>
+          <text x="575" y="297" text-anchor="middle" fill="#8babc7" font-size="8">Log Analytics</text>
+          <text x="575" y="308" text-anchor="middle" fill="#8babc7" font-size="8">NSG Flow Logs · Alerts</text>
+
+          <!-- Hub → Monitor -->
+          <line x1="460" y1="240" x2="510" y2="280" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4,3"/>
+        </svg>
+      </div>
+      <div class="arch-legend">
+        <div class="card">
+          <h3>Hub VNet</h3>
+          <p style="font-size:13px">Central security perimeter. Hosts Firewall for egress, Bastion for zero-trust VM access, Shared Services and DNS resolver subnets.</p>
+        </div>
+        <div class="card">
+          <h3>Spoke VNets</h3>
+          <p style="font-size:13px">Workload isolation. <strong style="color:var(--text)">App spoke</strong> runs web/app tiers + private endpoint subnet. <strong style="color:var(--text)">Mgmt spoke</strong> hosts jump and tooling VMs.</p>
+        </div>
+        <div class="card">
+          <h3>Traffic Flow</h3>
+          <p style="font-size:13px">All spoke egress is UDR-forced through the Firewall. Bidirectional VNet Peering with <code style="color:var(--azure-lt)">allow_forwarded_traffic</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── SLIDE 4: KEY SERVICES ─────────────── -->
+  <section class="slide" id="s4">
+    <div class="slide-header">
+      <div class="tag">⚙ Azure Services</div>
+      <h2>Key Components in Depth</h2>
+    </div>
+    <div class="content">
+      <div class="card-grid g2" style="gap:16px">
+        <div class="card">
+          <span class="icon">🔥</span>
+          <h3>Azure Firewall (Standard)</h3>
+          <p style="font-size:13px">Central egress control for all spoke VNets. Configured with a <strong style="color:var(--text)">Firewall Policy</strong> containing Network Rule Collections (allow HTTP/S, DNS from 10.0.0.0/8) and Application Rule Collections (*.azure.com, *.microsoft.com). All traffic from spokes is UDR-forced here.</p>
+          <div style="margin-top:10px">
+            <span class="badge badge-orange">Standard SKU</span>
+            <span class="badge badge-orange">Firewall Policy</span>
+            <span class="badge badge-orange">SNAT</span>
+          </div>
+        </div>
+        <div class="card">
+          <span class="icon">🔐</span>
+          <h3>Azure Bastion (Standard)</h3>
+          <p style="font-size:13px">Agent-free, browser-based RDP/SSH access to all spoke VMs — <strong style="color:var(--text)">zero public IPs on VMs</strong>. Standard SKU enables features like IP-based connection, native client support, and tunnelling. Audit logs streamed to Log Analytics.</p>
+          <div style="margin-top:10px">
+            <span class="badge badge-green">Standard SKU</span>
+            <span class="badge badge-green">No public VM IPs</span>
+            <span class="badge badge-green">Audit Logs</span>
+          </div>
+        </div>
+        <div class="card">
+          <span class="icon">🌐</span>
+          <h3>Private DNS + Private Endpoints</h3>
+          <p style="font-size:13px">Private DNS zones for <code style="color:var(--azure-lt)">privatelink.blob.core.windows.net</code> and <code style="color:var(--azure-lt)">privatelink.vaultcore.azure.net</code>. Zones linked to Hub and App VNets — PaaS services resolve to <strong style="color:var(--text)">private IPs</strong>, never traversing the public internet.</p>
+          <div style="margin-top:10px">
+            <span class="badge badge-purple">Storage</span>
+            <span class="badge badge-purple">Key Vault</span>
+            <span class="badge badge-purple">VNet Links</span>
+          </div>
+        </div>
+        <div class="card">
+          <span class="icon">🔑</span>
+          <h3>Remote State + Key Vault</h3>
+          <p style="font-size:13px">Terraform state stored in <strong style="color:var(--text)">Azure Blob Storage</strong> with state locking. Secrets managed by <strong style="color:var(--text)">Azure Key Vault</strong>. Backend bootstrapped via <code style="color:var(--azure-lt)">prepare-dev.sh</code> — Azure CLI script that creates the storage account and vault before Terraform runs.</p>
+          <div style="margin-top:10px">
+            <span class="badge badge-blue">Blob Backend</span>
+            <span class="badge badge-blue">State Lock</span>
+            <span class="badge badge-blue">Key Vault</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── SLIDE 5: IAC ─────────────── -->
+  <section class="slide" id="s5">
+    <div class="slide-header">
+      <div class="tag">📄 Infrastructure as Code</div>
+      <h2>Terraform — Production Patterns</h2>
+    </div>
+    <div class="content" style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card">
+          <h3>File Structure</h3>
+          <pre style="font-size:12px;color:#8babc7;line-height:1.7;font-family:monospace">az-hub-spoke/
+├── main.tf        # VNets, subnets, peering, UDRs
+├── firewall.tf    # Firewall + policy + rules
+├── bastion.tf     # Bastion host
+├── monitoring.tf  # Log Analytics, flow logs, alerts
+├── dns.tf         # Private DNS zones + VNet links
+├── variables.tf
+├── outputs.tf
+├── variables/
+│   ├── dev.tfvars
+│   └── prd.tfvars
+├── environments/dev/
+└── scripts/
+    ├── prepare-dev.sh   # Bootstrap backend
+    └── init-dev.sh      # Terraform init</pre>
+        </div>
+        <div class="card">
+          <h3>Style Guide</h3>
+          <p style="font-size:13px">Follows <strong style="color:var(--text)">carlzxc71/lindbergtech</strong> flat-root convention — complex resources separated by domain into dedicated <code style="color:var(--azure-lt)">.tf</code> files, not sub-modules. Variables: description first, type second. Naming: <code style="color:var(--azure-lt)">&lt;abbr&gt;-&lt;env&gt;-&lt;region&gt;-&lt;descriptor&gt;</code>.</p>
+        </div>
+      </div>
+      <div class="code-block">
+<span class="cmt"># Dynamic subnet creation with conditional UDR</span>
+<span class="kw">locals</span> {
+  app_subnet_config = {
+    <span class="str">"sn-web"</span> = { cidr = <span class="str">"10.1.1.0/24"</span>, udr = <span class="kw">true</span>  }
+    <span class="str">"sn-app"</span> = { cidr = <span class="str">"10.1.2.0/24"</span>, udr = <span class="kw">true</span>  }
+    <span class="str">"sn-pep"</span> = { cidr = <span class="str">"10.1.10.0/24"</span>, udr = <span class="kw">false</span> }
+  }
+}
+
+<span class="kw">resource</span> <span class="fn">"azurerm_subnet"</span> <span class="str">"app"</span> {
+  <span class="kw">for_each</span>             = local.app_subnet_config
+  name                 = each.key
+  address_prefixes     = [each.value.cidr]
+  resource_group_name  = azurerm_resource_group.hub.name
+  virtual_network_name = azurerm_virtual_network.app.name
+}
+
+<span class="cmt"># UDR: force all egress through Firewall</span>
+<span class="kw">resource</span> <span class="fn">"azurerm_subnet_route_table_association"</span> <span class="str">"app"</span> {
+  <span class="kw">for_each</span> = {
+    <span class="kw">for</span> k, v <span class="kw">in</span> local.app_subnet_config : k => v
+    <span class="kw">if</span> v.udr
+  }
+  subnet_id      = azurerm_subnet.app[each.key].id
+  route_table_id = azurerm_route_table.app.id
+}
+
+<span class="cmt"># Bidirectional VNet Peering</span>
+<span class="kw">resource</span> <span class="fn">"azurerm_virtual_network_peering"</span> <span class="str">"hub_to_app"</span> {
+  allow_forwarded_traffic = <span class="kw">true</span>
+  allow_gateway_transit   = <span class="kw">false</span>
+  use_remote_gateways     = <span class="kw">false</span>
+}
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── SLIDE 6: SECURITY ─────────────── -->
+  <section class="slide" id="s6">
+    <div class="slide-header">
+      <div class="tag">🛡 Security</div>
+      <h2>Zero-Trust Network Design</h2>
+    </div>
+    <div class="content" style="display:flex;flex-direction:column;gap:20px">
+      <div class="card">
+        <h3>Access Flow — No Public VM IPs</h3>
+        <div class="flow-row" style="flex-wrap:wrap;gap:4px;margin-top:12px">
+          <div class="flow-box">👤<br><small>Engineer</small></div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box" style="border-color:#4ade80">🌐<br><small>HTTPS Browser</small></div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box" style="border-color:#4ade80">🔐<br><small>Azure Bastion<br><small>pip-dev-sc-bas</small></small></div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box" style="border-color:#0078d4">🔥<br><small>Firewall<br><small>Inspection</small></small></div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-box" style="border-color:#a78bfa">🖥<br><small>Spoke VM<br><small>Private IP only</small></small></div>
+        </div>
+      </div>
+      <div class="card-grid g3" style="gap:14px">
+        <div class="card">
+          <h3>Egress Control</h3>
+          <ul style="font-size:13px;color:var(--muted);padding-left:16px;line-height:1.9">
+            <li>All spoke traffic → Firewall via UDR</li>
+            <li>HTTP/HTTPS + DNS allowed to Internet</li>
+            <li>Azure Management FQDNs whitelisted</li>
+            <li>All other traffic — implicit deny</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>PaaS Security</h3>
+          <ul style="font-size:13px;color:var(--muted);padding-left:16px;line-height:1.9">
+            <li>Private Endpoints for Storage + KV</li>
+            <li>Public blob access disabled</li>
+            <li>TLS 1.2 minimum on storage</li>
+            <li>Private DNS resolves to internal IPs</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Network Segmentation</h3>
+          <ul style="font-size:13px;color:var(--muted);padding-left:16px;line-height:1.9">
+            <li>NSG per spoke for East-West control</li>
+            <li>PEP subnet: network policies disabled</li>
+            <li>Dedicated DNS subnet in Hub</li>
+            <li>Separate CIDR blocks per VNet</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="background:rgba(0,120,212,.08);border-color:rgba(0,120,212,.3)">
+        <p style="font-size:13px;color:var(--text)"><strong style="color:var(--azure-lt)">Certificates & TLS:</strong> Storage accounts enforce minimum TLS 1.2 at platform level. Key Vault hosts certificates with role-based access. Azure Firewall terminates TLS for application-layer inspection. Bastion uses Azure-managed HTTPS with valid public certificates — no self-signed exposure.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── SLIDE 7: MONITORING ─────────────── -->
+  <section class="slide" id="s7">
+    <div class="slide-header">
+      <div class="tag">📊 Monitoring</div>
+      <h2>Native Azure Observability Stack</h2>
+    </div>
+    <div class="content" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card">
+          <h3>Log Analytics Workspace</h3>
+          <p style="font-size:13px">Central sink for all telemetry. <strong style="color:var(--text)">6 Firewall log categories</strong> — Network Rules, Application Rules, NAT Rules, Threat Intel, IDPS Signatures, DNS Proxy. Bastion audit logs. NSG Flow Logs with Traffic Analytics (10-min intervals). 30-day retention.</p>
+        </div>
+        <div class="card">
+          <h3>NSG Flow Logs v2</h3>
+          <p style="font-size:13px">Enabled on App and Mgmt spoke NSGs. Stored in dedicated storage account (<code style="color:var(--azure-lt)">stdevscfl</code>) with LRS. Traffic Analytics gives visibility into East-West and North-South flows, top talkers, and anomalies.</p>
+        </div>
+        <div class="card">
+          <h3>Action Group → Email Alerts</h3>
+          <p style="font-size:13px">Monitor Action Group (<code style="color:var(--azure-lt)">ag-dev-ops</code>) with email receiver. Triggers on metric threshold breaches — evaluates every 5 minutes over a 15-minute window.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Metric Alerts</h3>
+        <div style="margin-top:4px">
+          <div class="metric-row">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)">Firewall Health State</div>
+              <div style="font-size:12px;color:var(--muted)">Threshold: &lt; 90% — Firewall degraded or under stress</div>
+            </div>
+            <span class="sev sev1">SEV 1</span>
+          </div>
+          <div class="metric-row">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)">SNAT Port Utilisation</div>
+              <div style="font-size:12px;color:var(--muted)">Threshold: &gt; 80% — Risk of SNAT port exhaustion</div>
+            </div>
+            <span class="sev sev2">SEV 2</span>
+          </div>
+          <div class="metric-row">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)">Active Bastion Sessions</div>
+              <div style="font-size:12px;color:var(--muted)">Threshold: &gt; 50 — Unusual admin access volume</div>
+            </div>
+            <span class="sev sev3">SEV 3</span>
+          </div>
+          <hr>
+          <div style="margin-top:8px">
+            <span class="badge badge-orange">5-min frequency</span>
+            <span class="badge badge-orange">15-min window</span>
+            <span class="badge badge-blue">Email notification</span>
+            <span class="badge badge-blue">Network Watcher</span>
+            <span class="badge badge-purple">Traffic Analytics</span>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:14px">Diagnostic settings are wired for every critical resource. In a production scenario I would extend this with Application Insights, dashboards, and PagerDuty / Teams integration via Logic Apps.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── SLIDE 8: WHY ME ─────────────── -->
+  <section class="slide" id="s8">
+    <div class="slide-header">
+      <div class="tag">✅ Role Fit</div>
+      <h2>Why I Match This Role</h2>
+    </div>
+    <div class="content" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+      <div class="card">
+        <h3>Required → What I Bring</h3>
+        <ul class="check-list" style="margin-top:8px">
+          <li>
+            <span class="chk">✓</span>
+            <div class="chk-text">
+              <strong>MS Azure administration</strong>
+              <span>Hub-and-spoke with Firewall, Bastion, Key Vault, Private DNS, Log Analytics — all deployed and running.</span>
+            </div>
+          </li>
+          <li>
+            <span class="chk">✓</span>
+            <div class="chk-text">
+              <strong>Networking & internet publishing</strong>
+              <span>UDR routing, VNet Peering, subnet design, SNAT, Firewall FQDN rules, Private Endpoints.</span>
+            </div>
+          </li>
+          <li>
+            <span class="chk">✓</span>
+            <div class="chk-text">
+              <strong>Containerisation (AKS)</strong>
+              <span>Familiar with AKS cluster design, node pools, and integrating AKS into hub-spoke topologies.</span>
+            </div>
+          </li>
+          <li>
+            <span class="chk">✓</span>
+            <div class="chk-text">
+              <strong>Azure CLI / Bash scripting</strong>
+              <span>Backend bootstrap scripts, automation of resource provisioning, CI/CD pipeline support.</span>
+            </div>
+          </li>
+          <li>
+            <span class="chk">✓</span>
+            <div class="chk-text">
+              <strong>Databases</strong>
+              <span>Knowledge of SQL / PostgreSQL; Private Endpoint design for Azure SQL and Cosmos DB.</span>
+            </div>
+          </li>
+          <li>
+            <span class="chk">✓</span>
+            <div class="chk-text">
+              <strong>Certificates / TLS</strong>
+              <span>Key Vault certificate management, TLS enforcement on storage, Firewall TLS inspection awareness.</span>
+            </div>
+          </li>
+          <li>
+            <span class="chk">✓</span>
+            <div class="chk-text">
+              <strong>Monitoring & reporting</strong>
+              <span>Log Analytics, NSG Flow Logs, Traffic Analytics, metric alerts with severity levels.</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card" style="background:rgba(74,222,128,.07);border-color:rgba(74,222,128,.3)">
+          <h3 style="color:var(--green)">Documentation & Specifications</h3>
+          <p style="font-size:13px">I write architecture docs (CLAUDE.md, migration guides, technical deep-dive presentations) and keep them version-controlled alongside the code. Comfortable with functional and technical spec writing in English.</p>
+        </div>
+        <div class="card" style="background:rgba(167,139,250,.07);border-color:rgba(167,139,250,.3)">
+          <h3 style="color:var(--purple)">Customer Requests & Ticketing</h3>
+          <p style="font-size:13px">I analyse requirements, translate them into concrete infrastructure designs, and implement iteratively. Experience with decomposing vague asks into CIDR plans, security policies, and deployable IaC.</p>
+        </div>
+        <div class="card" style="background:rgba(0,120,212,.07);border-color:rgba(0,120,212,.3)">
+          <h3 style="color:var(--azure-lt)">Continuous Learning</h3>
+          <p style="font-size:13px">Actively follow Azure release notes and Terraform provider changelogs. This project intentionally uses the latest azurerm 4.x provider. Comfortable self-training on new services and evaluating their fit for existing architectures.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── SLIDE 9: CLOSING ─────────────── -->
+  <section class="slide" id="s9">
+    <div style="position:relative;z-index:1;text-align:center">
+      <div class="big-icon">☁</div>
+      <div class="tag" style="display:inline-flex;margin-bottom:24px">Ready to contribute from day one</div>
+      <h1>Let's build reliable<br><span class="accent">cloud platforms</span><br>together.</h1>
+      <p style="margin-top:20px;font-size:16px;color:var(--muted);max-width:520px;margin-left:auto;margin-right:auto">
+        I bring a solid Azure networking foundation, production-grade Terraform habits, a security-first mindset, and the curiosity to keep learning as the platform evolves.
+      </p>
+      <div class="contact-row">
+        <div class="contact-item">
+          <strong>GitHub</strong>
+          github.com/mysak7/az-hub-spoke
+        </div>
+        <div class="contact-item">
+          <strong>Email</strong>
+          mikezspam@gmail.com
+        </div>
+        <div class="contact-item">
+          <strong>Stack</strong>
+          Azure · Terraform · Bash · AKS
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /deck -->
+
+<!-- ── NAVIGATION ── -->
+<nav>
+  <button id="prev" onclick="go(-1)" title="Previous (←)">&#8592;</button>
+  <div class="dot-row" id="dots"></div>
+  <span id="counter">1 / 9</span>
+  <button id="next" onclick="go(1)" title="Next (→)">&#8594;</button>
+</nav>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const total  = slides.length;
+let cur = 0;
+
+const dotsEl    = document.getElementById('dots');
+const counterEl = document.getElementById('counter');
+const prevBtn   = document.getElementById('prev');
+const nextBtn   = document.getElementById('next');
+const progress  = document.getElementById('progress');
+
+// build dots
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' on' : '');
+  d.onclick = () => jumpTo(i);
+  dotsEl.appendChild(d);
+});
+
+function render() {
+  slides.forEach((s, i) => {
+    s.classList.remove('active', 'exit');
+    if (i === cur) s.classList.add('active');
+  });
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === cur));
+  counterEl.textContent = `${cur + 1} / ${total}`;
+  prevBtn.disabled = cur === 0;
+  nextBtn.disabled = cur === total - 1;
+  progress.style.width = `${((cur + 1) / total) * 100}%`;
+}
+
+function go(dir) {
+  const next = cur + dir;
+  if (next < 0 || next >= total) return;
+  slides[cur].classList.add('exit');
+  cur = next;
+  render();
+}
+
+function jumpTo(i) {
+  if (i === cur) return;
+  slides[cur].classList.add('exit');
+  cur = i;
+  render();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); go(-1); }
+  if (e.key === 'Home') jumpTo(0);
+  if (e.key === 'End')  jumpTo(total - 1);
+});
+
+// swipe support
+let tx = 0;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+document.addEventListener('touchend',   e => {
+  const dx = e.changedTouches[0].clientX - tx;
+  if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+});
+
+render();
+</script>
+</body>
+</html>
