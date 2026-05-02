@@ -226,42 +226,60 @@
 
   <!-- ─────────────── SLIDE 1: TITLE ─────────────── -->
   <section class="slide active" id="s1">
-    <div class="tag">☁ Azure Cloud Platform Engineer</div>
+    <div class="tag">☁ Azure Networking</div>
     <h1>Enterprise Azure<br><span class="accent">Hub-and-Spoke</span><br>Infrastructure</h1>
-    <p class="title-sub">Designing, building & operating production-grade Azure environments with Terraform IaC, centralised security, and native cloud monitoring.</p>
+    <p class="title-sub">A production-grade network architecture featuring centralised egress control, zero-trust VM access, Private PaaS connectivity, and native cloud monitoring — deployed entirely with Terraform.</p>
     <div class="title-meta">
       <span><strong>Stack</strong><br>Azure · Terraform · Bash · Azure CLI</span>
-      <span><strong>Project</strong><br>az-hub-spoke on GitHub</span>
+      <span><strong>Repository</strong><br>az-hub-spoke on GitHub</span>
       <span><strong>Date</strong><br>May 2026</span>
     </div>
   </section>
 
-  <!-- ─────────────── SLIDE 2: ABOUT ─────────────── -->
+  <!-- ─────────────── SLIDE 2: PROJECT GOALS ─────────────── -->
   <section class="slide" id="s2">
     <div class="slide-header">
-      <div class="tag">👤 About Me</div>
-      <h2>Cloud & DevOps Engineer</h2>
+      <div class="tag">🎯 Project Goals</div>
+      <h2>What This Architecture Solves</h2>
     </div>
-    <div class="content" style="display:flex;flex-direction:column;gap:20px">
-      <div class="card">
-        <h3>Overview</h3>
-        <p style="font-size:15px">Designing and managing cloud platforms end-to-end — from networking topology and security policy, through Infrastructure as Code, to monitoring and operational runbooks. Focus on getting the fundamentals right: reliable routing, least-privilege access, and observable systems.</p>
+    <div class="content card-grid g2" style="align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card">
+          <h3>Problem Statement</h3>
+          <p style="font-size:14px">Workloads spread across multiple VNets need a unified, auditable path to the internet and to shared PaaS services — without exposing individual VMs or services to the public internet.</p>
+        </div>
+        <div class="card">
+          <h3>Design Constraints</h3>
+          <ul style="font-size:13px;color:var(--muted);padding-left:16px;line-height:2">
+            <li>No public IPs on workload VMs</li>
+            <li>All egress must be inspected and logged</li>
+            <li>PaaS services must not traverse the public internet</li>
+            <li>Full infrastructure reproducibility via IaC</li>
+            <li>Separate network domains per workload type</li>
+          </ul>
+        </div>
       </div>
-      <div class="card">
-        <h3>Technology Stack</h3>
-        <div style="margin-top:8px">
-          <span class="badge badge-blue">MS Azure</span>
-          <span class="badge badge-blue">Terraform</span>
-          <span class="badge badge-blue">Azure CLI</span>
-          <span class="badge badge-blue">Bash</span>
-          <span class="badge badge-green">Azure Firewall</span>
-          <span class="badge badge-green">Azure Bastion</span>
-          <span class="badge badge-green">VNet Peering</span>
-          <span class="badge badge-green">Private DNS</span>
-          <span class="badge badge-orange">Log Analytics</span>
-          <span class="badge badge-orange">NSG Flow Logs</span>
-          <span class="badge badge-purple">AKS</span>
-          <span class="badge badge-purple">Key Vault</span>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card">
+          <h3>Chosen Approach</h3>
+          <p style="font-size:14px">Hub-and-spoke topology with a centralised Hub VNet hosting all shared security services. Spokes are isolated workload VNets peered to the Hub, with User-Defined Routes forcing all traffic through Azure Firewall.</p>
+        </div>
+        <div class="card">
+          <h3>Technology Stack</h3>
+          <div style="margin-top:6px">
+            <span class="badge badge-blue">MS Azure</span>
+            <span class="badge badge-blue">Terraform 4.x</span>
+            <span class="badge badge-blue">Azure CLI</span>
+            <span class="badge badge-blue">Bash</span>
+            <span class="badge badge-green">Azure Firewall</span>
+            <span class="badge badge-green">Azure Bastion</span>
+            <span class="badge badge-green">VNet Peering</span>
+            <span class="badge badge-green">Private DNS</span>
+            <span class="badge badge-orange">Log Analytics</span>
+            <span class="badge badge-orange">NSG Flow Logs</span>
+            <span class="badge badge-purple">Key Vault</span>
+            <span class="badge badge-purple">Blob Storage</span>
+          </div>
         </div>
       </div>
     </div>
@@ -614,105 +632,64 @@
     </div>
   </section>
 
-  <!-- ─────────────── SLIDE 8: WHY ME ─────────────── -->
+  <!-- ─────────────── SLIDE 8: DESIGN DECISIONS ─────────────── -->
   <section class="slide" id="s8">
     <div class="slide-header">
-      <div class="tag">✅ Role Fit</div>
-      <h2>Why I Match This Role</h2>
+      <div class="tag">🧩 Design Decisions</div>
+      <h2>Key Architectural Choices</h2>
     </div>
-    <div class="content" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
-      <div class="card">
-        <h3>Required → What I Bring</h3>
-        <ul class="check-list" style="margin-top:8px">
-          <li>
-            <span class="chk">✓</span>
-            <div class="chk-text">
-              <strong>MS Azure administration</strong>
-              <span>Hub-and-spoke with Firewall, Bastion, Key Vault, Private DNS, Log Analytics — all deployed and running.</span>
-            </div>
-          </li>
-          <li>
-            <span class="chk">✓</span>
-            <div class="chk-text">
-              <strong>Networking & internet publishing</strong>
-              <span>UDR routing, VNet Peering, subnet design, SNAT, Firewall FQDN rules, Private Endpoints.</span>
-            </div>
-          </li>
-          <li>
-            <span class="chk">✓</span>
-            <div class="chk-text">
-              <strong>Containerisation (AKS)</strong>
-              <span>Familiar with AKS cluster design, node pools, and integrating AKS into hub-spoke topologies.</span>
-            </div>
-          </li>
-          <li>
-            <span class="chk">✓</span>
-            <div class="chk-text">
-              <strong>Azure CLI / Bash scripting</strong>
-              <span>Backend bootstrap scripts, automation of resource provisioning, CI/CD pipeline support.</span>
-            </div>
-          </li>
-          <li>
-            <span class="chk">✓</span>
-            <div class="chk-text">
-              <strong>Databases</strong>
-              <span>Knowledge of SQL / PostgreSQL; Private Endpoint design for Azure SQL and Cosmos DB.</span>
-            </div>
-          </li>
-          <li>
-            <span class="chk">✓</span>
-            <div class="chk-text">
-              <strong>Certificates / TLS</strong>
-              <span>Key Vault certificate management, TLS enforcement on storage, Firewall TLS inspection awareness.</span>
-            </div>
-          </li>
-          <li>
-            <span class="chk">✓</span>
-            <div class="chk-text">
-              <strong>Monitoring & reporting</strong>
-              <span>Log Analytics, NSG Flow Logs, Traffic Analytics, metric alerts with severity levels.</span>
-            </div>
-          </li>
-        </ul>
+    <div class="content card-grid g2" style="align-items:start;gap:16px">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card">
+          <h3>Hub-and-Spoke vs. Flat VNet</h3>
+          <p style="font-size:13px">A single flat VNet would scale poorly and share blast radius across workloads. Hub-and-spoke isolates each workload into its own VNet while centralising the expensive shared services (Firewall, Bastion, DNS) in the Hub — one set of resources, multiple spokes.</p>
+        </div>
+        <div class="card">
+          <h3>Firewall Standard vs. Premium</h3>
+          <p style="font-size:13px">Standard SKU covers FQDN filtering, network rules, and full diagnostic logging — sufficient for this architecture. Premium adds TLS inspection and IDPS, appropriate when the firewall must act as a full SSL proxy for internal east-west traffic.</p>
+        </div>
+        <div class="card">
+          <h3>Private Endpoints vs. Service Endpoints</h3>
+          <p style="font-size:13px">Service Endpoints keep traffic on the Azure backbone but the service still has a public IP. Private Endpoints inject the service directly into the VNet with a private IP — DNS resolves to a private address, eliminating any public exposure.</p>
+        </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
-        <div class="card" style="background:rgba(74,222,128,.07);border-color:rgba(74,222,128,.3)">
-          <h3 style="color:var(--green)">Documentation & Specifications</h3>
-          <p style="font-size:13px">I write architecture docs (CLAUDE.md, migration guides, technical deep-dive presentations) and keep them version-controlled alongside the code. Comfortable with functional and technical spec writing in English.</p>
+        <div class="card">
+          <h3>Flat Terraform Root vs. Nested Modules</h3>
+          <p style="font-size:13px">Nested modules add indirection and complicate state. A flat root with domain-separated <code style="color:var(--azure-lt)">.tf</code> files (<code style="color:var(--azure-lt)">firewall.tf</code>, <code style="color:var(--azure-lt)">dns.tf</code>, <code style="color:var(--azure-lt)">monitoring.tf</code>) keeps the dependency graph visible and makes cross-resource references straightforward.</p>
         </div>
-        <div class="card" style="background:rgba(167,139,250,.07);border-color:rgba(167,139,250,.3)">
-          <h3 style="color:var(--purple)">Customer Requests & Ticketing</h3>
-          <p style="font-size:13px">I analyse requirements, translate them into concrete infrastructure designs, and implement iteratively. Experience with decomposing vague asks into CIDR plans, security policies, and deployable IaC.</p>
+        <div class="card">
+          <h3>Bastion Standard vs. Basic</h3>
+          <p style="font-size:13px">Basic SKU only supports browser-based RDP/SSH via Azure Portal. Standard adds native client support, IP-based connections, and tunnelling — needed for tooling that expects a real SSH session rather than a browser terminal.</p>
         </div>
-        <div class="card" style="background:rgba(0,120,212,.07);border-color:rgba(0,120,212,.3)">
-          <h3 style="color:var(--azure-lt)">Continuous Learning</h3>
-          <p style="font-size:13px">Actively follow Azure release notes and Terraform provider changelogs. This project intentionally uses the latest azurerm 4.x provider. Comfortable self-training on new services and evaluating their fit for existing architectures.</p>
+        <div class="card">
+          <h3>Remote State in Blob + Key Vault</h3>
+          <p style="font-size:13px">State stored in Azure Blob Storage with native lease-based locking prevents concurrent applies. Secrets referenced via Key Vault rather than hardcoded in tfvars — the backend is bootstrapped once with a Bash script before Terraform runs.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─────────────── SLIDE 9: CLOSING ─────────────── -->
+  <!-- ─────────────── SLIDE 9: SUMMARY ─────────────── -->
   <section class="slide" id="s9">
     <div style="position:relative;z-index:1;text-align:center">
       <div class="big-icon">☁</div>
-      <div class="tag" style="display:inline-flex;margin-bottom:24px">Ready to contribute from day one</div>
-      <h1>Let's build reliable<br><span class="accent">cloud platforms</span><br>together.</h1>
-      <p style="margin-top:20px;font-size:16px;color:var(--muted);max-width:520px;margin-left:auto;margin-right:auto">
-        I bring a solid Azure networking foundation, production-grade Terraform habits, a security-first mindset, and the curiosity to keep learning as the platform evolves.
+      <div class="tag" style="display:inline-flex;margin-bottom:24px">✅ Summary</div>
+      <h1>Enterprise Hub-and-Spoke<br><span class="accent">fully deployed</span><br>on Azure</h1>
+      <p style="margin-top:20px;font-size:15px;color:var(--muted);max-width:580px;margin-left:auto;margin-right:auto">
+        Centralised Firewall egress · Zero-trust Bastion access · Private DNS for PaaS · Remote Terraform state · NSG Flow Logs with Traffic Analytics · Metric alerting with severity levels
       </p>
       <div class="contact-row">
         <div class="contact-item">
-          <strong>GitHub</strong>
+          <strong>Repository</strong>
           github.com/mysak7/az-hub-spoke
         </div>
         <div class="contact-item">
-          <strong>Email</strong>
-          mikezspam@gmail.com
+          <strong>Provider</strong>
+          azurerm 4.x
         </div>
         <div class="contact-item">
-          <strong>Stack</strong>
-          Azure · Terraform · Bash · AKS
+          <strong>Questions?</strong>
         </div>
       </div>
     </div>
