@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture Analysis — Azure Hub-and-Spoke</title>
+<style>
+  :root {
+    --azure:    #0078d4;
+    --azure-dk: #004578;
+    --azure-lt: #50e6ff;
+    --bg:       #0a0f1e;
+    --surface:  #111827;
+    --surface2: #1a2235;
+    --border:   #1e3a5f;
+    --text:     #e8f0fe;
+    --muted:    #8babc7;
+    --green:    #4ade80;
+    --orange:   #fb923c;
+    --purple:   #a78bfa;
+    --red:      #f87171;
+    --yellow:   #facc15;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+
+  /* ── SLIDES ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 40px 60px;
+    opacity: 0; pointer-events: none;
+    transform: translateX(60px);
+    transition: opacity .4s ease, transform .4s ease;
+  }
+  .slide.active  { opacity: 1; pointer-events: auto; transform: translateX(0); }
+  .slide.exit    { opacity: 0; transform: translateX(-60px); transition: opacity .28s ease, transform .28s ease; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(10,15,30,.88); border: 1px solid var(--border);
+    padding: 8px 18px; border-radius: 40px; backdrop-filter: blur(14px); z-index: 100;
+  }
+  nav button { background: none; border: none; color: var(--muted); font-size: 17px; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: color .2s, background .2s; }
+  nav button:hover { color: var(--azure-lt); background: var(--surface2); }
+  nav button:disabled { opacity: .2; cursor: default; }
+  #counter { font-size: 12px; color: var(--muted); min-width: 48px; text-align: center; }
+  .dot-row { display: flex; gap: 5px; align-items: center; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); cursor: pointer; transition: background .2s, transform .2s; }
+  .dot.on { background: var(--azure-lt); transform: scale(1.5); }
+  #progress { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--azure), var(--azure-lt)); transition: width .4s ease; z-index: 200; }
+
+  /* ── TYPOGRAPHY ── */
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
+    color: var(--azure-lt); padding: 3px 12px;
+    border: 1px solid var(--border); border-radius: 20px;
+    background: rgba(0,120,212,.12); margin-bottom: 14px;
+  }
+  .tag.warn  { color: var(--orange); border-color: rgba(251,146,60,.4); background: rgba(251,146,60,.08); }
+  .tag.bad   { color: var(--red);    border-color: rgba(248,113,113,.4); background: rgba(248,113,113,.08); }
+  .tag.good  { color: var(--green);  border-color: rgba(74,222,128,.4);  background: rgba(74,222,128,.08); }
+  .tag.info  { color: var(--purple); border-color: rgba(167,139,250,.4); background: rgba(167,139,250,.08); }
+  h1 { font-size: clamp(28px, 3.6vw, 46px); font-weight: 700; line-height: 1.1; }
+  h2 { font-size: clamp(20px, 2.4vw, 30px); font-weight: 700; margin-bottom: 4px; }
+  h3 { font-size: 14px; font-weight: 600; color: var(--azure-lt); margin-bottom: 7px; }
+  h3.warn  { color: var(--orange); }
+  h3.bad   { color: var(--red); }
+  h3.good  { color: var(--green); }
+  h3.info  { color: var(--purple); }
+  p  { line-height: 1.65; color: var(--muted); font-size: 13px; }
+  .accent { color: var(--azure-lt); }
+  code { font-family: 'Cascadia Code','Fira Code',monospace; font-size: 11.5px; color: var(--azure-lt); background: rgba(0,120,212,.12); padding: 1px 5px; border-radius: 4px; }
+
+  /* ── CARDS ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .card.warn   { background: rgba(251,146,60,.05);  border-color: rgba(251,146,60,.35); }
+  .card.bad    { background: rgba(248,113,113,.05); border-color: rgba(248,113,113,.35); }
+  .card.good   { background: rgba(74,222,128,.05);  border-color: rgba(74,222,128,.35); }
+  .card.info   { background: rgba(167,139,250,.05); border-color: rgba(167,139,250,.35); }
+  .card.azure  { background: rgba(0,120,212,.06);   border-color: rgba(80,230,255,.3); }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+  .slide-header { margin-bottom: 22px; }
+  .content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+  /* ── BADGES ── */
+  .badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin: 2px; }
+  .badge-blue   { background: rgba(0,120,212,.2);   color: #50e6ff; border: 1px solid rgba(80,230,255,.25); }
+  .badge-green  { background: rgba(74,222,128,.15); color: #4ade80; border: 1px solid rgba(74,222,128,.3); }
+  .badge-orange { background: rgba(251,146,60,.15); color: #fb923c; border: 1px solid rgba(251,146,60,.3); }
+  .badge-red    { background: rgba(248,113,113,.15);color: #f87171; border: 1px solid rgba(248,113,113,.3); }
+  .badge-purple { background: rgba(167,139,250,.15);color: #a78bfa; border: 1px solid rgba(167,139,250,.3); }
+  .badge-yellow { background: rgba(250,204,21,.12); color: #facc15; border: 1px solid rgba(250,204,21,.3); }
+
+  /* ── COMPARISON TABLE ── */
+  .cmp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .cmp-table th { text-align: left; padding: 8px 12px; background: var(--surface2); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; border-bottom: 1px solid var(--border); }
+  .cmp-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; color: var(--muted); }
+  .cmp-table tr:last-child td { border-bottom: none; }
+  .cmp-table td:first-child { color: var(--text); font-weight: 500; }
+  .plus  { color: var(--green); }
+  .minus { color: var(--red); }
+  .neutral { color: var(--orange); }
+
+  /* ── ISSUE ROW ── */
+  .issue { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .issue:last-child { border-bottom: none; }
+  .issue-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .issue-body strong { display: block; font-size: 13px; color: var(--text); margin-bottom: 2px; }
+  .issue-body span   { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* ── CODE BLOCK ── */
+  .code { background: #0d1117; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; font-family: 'Cascadia Code','Fira Code',monospace; font-size: 11.5px; line-height: 1.75; color: #c9d1d9; }
+  .kw  { color: #ff7b72; }
+  .str { color: #a5d6ff; }
+  .cmt { color: #8b949e; font-style: italic; }
+  .fn  { color: #d2a8ff; }
+  .val { color: #79c0ff; }
+
+  /* ── PRIORITY ROW ── */
+  .pri { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 8px; margin-bottom: 8px; }
+  .pri-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .pri-body strong { font-size: 13px; color: var(--text); }
+  .pri-body span   { font-size: 12px; color: var(--muted); display: block; }
+  .p1 { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.25); }
+  .p1 .pri-num { background: rgba(248,113,113,.2); color: var(--red); }
+  .p2 { background: rgba(251,146,60,.07);  border: 1px solid rgba(251,146,60,.25); }
+  .p2 .pri-num { background: rgba(251,146,60,.2); color: var(--orange); }
+  .p3 { background: rgba(250,204,21,.06);  border: 1px solid rgba(250,204,21,.2); }
+  .p3 .pri-num { background: rgba(250,204,21,.15); color: var(--yellow); }
+  .p4 { background: rgba(167,139,250,.06); border: 1px solid rgba(167,139,250,.2); }
+  .p4 .pri-num { background: rgba(167,139,250,.15); color: var(--purple); }
+
+  /* ── TITLE SLIDE ── */
+  #s1 { justify-content: center; overflow: hidden; }
+  #s1::before { content:''; position:absolute; top:-100px; right:-100px; width:450px; height:450px; border-radius:50%; background: radial-gradient(circle, rgba(0,120,212,.3) 0%, transparent 70%); pointer-events:none; }
+  #s1::after  { content:''; position:absolute; bottom:-60px; left:-60px; width:300px; height:300px; border-radius:50%; background: radial-gradient(circle, rgba(80,230,255,.1) 0%, transparent 70%); pointer-events:none; }
+  .title-meta { display:flex; gap:20px; flex-wrap:wrap; margin-top:28px; }
+  .title-meta span { font-size:13px; color:var(--muted); }
+  .title-meta strong { color:var(--text); display:block; }
+  .title-sub { font-size:16px; color:var(--muted); margin-top:14px; line-height:1.6; max-width:620px; }
+
+  /* ── CLOSING ── */
+  #s10 { justify-content:center; overflow:hidden; text-align:center; }
+  #s10::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:550px; height:550px; border-radius:50%; background:radial-gradient(circle, rgba(0,120,212,.18) 0%, transparent 65%); pointer-events:none; }
+  .big-icon { font-size:58px; margin-bottom:20px; }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div class="deck">
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 1 — TITLE
+══════════════════════════════════════════════════════════ -->
+<section class="slide active" id="s1">
+  <div class="tag">🔍 Architecture Review</div>
+  <h1>Hub-and-Spoke<br><span class="accent">Architecture Analysis</span></h1>
+  <p class="title-sub">A critical review of the current implementation — what is solid, what has gaps, and a comparison of alternative approaches for each design decision.</p>
+  <div class="title-meta">
+    <span><strong>Project</strong>az-hub-spoke</span>
+    <span><strong>Provider</strong>azurerm 4.20.0</span>
+    <span><strong>Scope</strong>Networking · Security · IaC · Monitoring</span>
+    <span><strong>Date</strong>May 2026</span>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 2 — STRENGTHS
+══════════════════════════════════════════════════════════ -->
+<section class="slide" id="s2">
+  <div class="slide-header">
+    <div class="tag good">✅ What Works Well</div>
+    <h2>Strengths of the Current Implementation</h2>
+  </div>
+  <div class="content g2" style="align-items:start">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card good">
+        <h3 class="good">Centralised Egress via Firewall</h3>
+        <p>All spoke subnets have UDRs pointing <code>0.0.0.0/0</code> to the Firewall private IP. BGP propagation is explicitly disabled, preventing route override. The Firewall Policy is a separate resource — rule sets can be updated without recreating the Firewall.</p>
+      </div>
+      <div class="card good">
+        <h3 class="good">Zero-Trust VM Access</h3>
+        <p>No spoke VM has a public IP. Bastion Standard provides native client support and tunnelling. Audit logs are wired to Log Analytics. This eliminates the entire class of "exposed management port" incidents.</p>
+      </div>
+      <div class="card good">
+        <h3 class="good">Private DNS Architecture</h3>
+        <p>Private DNS zones for Storage and Key Vault are linked to both Hub and App VNets. PEP subnet has <code>private_endpoint_network_policies = Disabled</code> correctly set. DNS resolves PaaS FQDNs to private IPs.</p>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card good">
+        <h3 class="good">Monitoring Depth</h3>
+        <p>Six Firewall log categories, Bastion audit logs, NSG Flow Logs v2 with Traffic Analytics on both spokes, and three metric alerts with appropriate severities — all routed to a single Log Analytics workspace.</p>
+      </div>
+      <div class="card good">
+        <h3 class="good">Dynamic Terraform Patterns</h3>
+        <p><code>for_each</code> on <code>local.app_subnet_config</code> with conditional UDR association (<code>if v.apply_udr</code>) avoids repetition without introducing unnecessary abstraction. The flat-root style keeps the dependency graph readable.</p>
+      </div>
+      <div class="card good">
+        <h3 class="good">Secure Remote State</h3>
+        <p>Blob Storage backend with TLS 1.2, public access disabled. Role-based access via <code>az role assignment create</code> in the bootstrap script. Secrets not stored in tfvars — Key Vault referenced at runtime.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 3 — CRITICAL GAPS
+══════════════════════════════════════════════════════════ -->
+<section class="slide" id="s3">
+  <div class="slide-header">
+    <div class="tag bad">🚨 Critical Gaps</div>
+    <h2>Issues That Break the Design Intent</h2>
+  </div>
+  <div class="content" style="display:flex;flex-direction:column;gap:0">
+    <div class="issue">
+      <span class="issue-icon">🛡️</span>
+      <div class="issue-body">
+        <strong>NSGs created but have zero rules defined</strong>
+        <span><code>azurerm_network_security_group.app</code> and <code>.mgmt</code> are empty. They are associated to every subnet purely for flow log capture. No East-West traffic is actually controlled — any VM in the app spoke can reach any other VM on any port. The NSGs provide an audit trail, not protection.</span>
+      </div>
+      <span class="badge badge-red">High</span>
+    </div>
+    <div class="issue">
+      <span class="issue-icon">🌐</span>
+      <div class="issue-body">
+        <strong>sn-dns subnet exists but nothing is deployed in it</strong>
+        <span>The Hub VNet has a dedicated DNS subnet (<code>10.0.4.0/24</code>). Its purpose is to host an Azure DNS Private Resolver or custom DNS forwarder. Without it, spoke VMs rely on Azure-default DNS (<code>168.63.129.16</code>) — this works for basic Private DNS lookups but breaks conditional forwarding to on-premises zones and provides no control over DNS query logging.</span>
+      </div>
+      <span class="badge badge-red">High</span>
+    </div>
+    <div class="issue">
+      <span class="issue-icon">🔗</span>
+      <div class="issue-body">
+        <strong>MGMT spoke not linked to Private DNS zones</strong>
+        <span>Only Hub and App VNets have <code>azurerm_private_dns_zone_virtual_network_link</code> entries. Jump VMs and tooling in the MGMT spoke (<code>10.2.0.0/16</code>) cannot resolve <code>*.blob.core.windows.net</code> or <code>*.vaultcore.azure.net</code> private endpoint FQDNs — they will fall back to public IPs, breaking the private connectivity model.</span>
+      </div>
+      <span class="badge badge-red">High</span>
+    </div>
+    <div class="issue">
+      <span class="issue-icon">🔌</span>
+      <div class="issue-body">
+        <strong>No Private Endpoint resources actually deployed</strong>
+        <span>The <code>sn-pep</code> subnet and private DNS zones are correctly prepared but no <code>azurerm_private_endpoint</code> resources exist. The architecture is ready but incomplete — there are no actual Storage or Key Vault private endpoints to demonstrate the pattern end-to-end.</span>
+      </div>
+      <span class="badge badge-orange">Medium</span>
+    </div>
+    <div class="issue">
+      <span class="issue-icon">🔍</span>
+      <div class="issue-body">
+        <strong>Network Watcher name mismatch (import fragility)</strong>
+        <span>Azure auto-creates <code>NetworkWatcher_&lt;region&gt;</code> in <code>NetworkWatcherRG</code>, but the Terraform resource uses the project naming convention (<code>nw-dev-sc</code>). The comment says to import it — but the import path must match the Azure-generated name. Any new environment or region requires a manual import step before <code>terraform apply</code>, which is an operational pitfall.</span>
+      </div>
+      <span class="badge badge-orange">Medium</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 4 — FIREWALL RULES & IMPROVEMENTS
+══════════════════════════════════════════════════════════ -->
+<section class="slide" id="s4">
+  <div class="slide-header">
+    <div class="tag warn">⚠️ Firewall Rules</div>
+    <h2>Overly Broad Rules &amp; How to Tighten Them</h2>
+  </div>
+  <div class="content g2" style="align-items:start;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card bad">
+        <h3 class="bad">Current — Too Permissive</h3>
+        <div class="code" style="margin-top:8px">
+<span class="cmt"># Source: all RFC-1918 private space</span>
+<span class="fn">source_addresses</span>      = [<span class="str">"10.0.0.0/8"</span>]
+<span class="cmt"># Destination: anything on the internet</span>
+<span class="fn">destination_addresses</span> = [<span class="str">"*"</span>]
+<span class="fn">destination_ports</span>     = [<span class="str">"80"</span>, <span class="str">"443"</span>]
+
+<span class="cmt"># DNS: any resolver anywhere</span>
+<span class="fn">destination_addresses</span> = [<span class="str">"*"</span>]
+<span class="fn">destination_ports</span>     = [<span class="str">"53"</span>]
+        </div>
+        <p style="margin-top:10px">Any host in <code>10.0.0.0/8</code> — including future spokes, on-prem ranges, or VPN peers — can reach any internet destination on 80/443. DNS rule allows any resolver, including attacker-controlled ones (DNS exfiltration risk).</p>
+      </div>
+      <div class="card bad">
+        <h3 class="bad">Wildcard Azure FQDNs</h3>
+        <p>Application rule <code>*.azure.com</code>, <code>*.microsoft.com</code> covers a huge surface area. A compromised VM can reach any Azure service in any tenant — including data-plane endpoints outside this subscription.</p>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card good">
+        <h3 class="good">Recommended — Least Privilege</h3>
+        <div class="code" style="margin-top:8px">
+<span class="cmt"># Per-spoke sources, not /8</span>
+<span class="fn">source_addresses</span>      = [<span class="str">"10.1.0.0/16"</span>]
+<span class="fn">destination_addresses</span> = [<span class="str">"*"</span>]
+<span class="fn">destination_ports</span>     = [<span class="str">"443"</span>]  <span class="cmt"># drop port 80</span>
+
+<span class="cmt"># DNS: point to known resolvers only</span>
+<span class="fn">destination_addresses</span> = [
+  <span class="str">"168.63.129.16"</span>,  <span class="cmt"># Azure DNS</span>
+  <span class="str">"1.1.1.1"</span>,        <span class="cmt"># Cloudflare</span>
+]
+        </div>
+      </div>
+      <div class="card good">
+        <h3 class="good">Scoped Azure FQDNs</h3>
+        <p>Replace wildcard rules with specific FQDNs needed by the workload:</p>
+        <ul style="font-size:12px;color:var(--muted);padding-left:14px;margin-top:6px;line-height:2">
+          <li><code>management.azure.com</code> — ARM API</li>
+          <li><code>login.microsoftonline.com</code> — AAD auth</li>
+          <li><code>&lt;account&gt;.blob.core.windows.net</code> — Storage</li>
+          <li><code>&lt;vault&gt;.vault.azure.net</code> — Key Vault</li>
+        </ul>
+      </div>
+      <div class="card info">
+        <h3 class="info">Consider Firewall Premium for IDPS</h3>
+        <p>Standard SKU has no Intrusion Detection. Premium adds signature-based IDPS, URL categorisation, and TLS inspection — critical if spokes host internet-facing workloads.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 5 — NSG FLOW LOGS vs VNET FLOW LOGS
+══════════════════════════════════════════════════════════ -->
+<section class="slide" id="s5">
+  <div class="slide-header">
+    <div class="tag warn">⚠️ Deprecated Feature</div>
+    <h2>NSG Flow Logs → VNet Flow Logs</h2>
+    <p>NSG Flow Logs are being deprecated by Microsoft in favour of VNet-level flow logs. Migration is recommended.</p>
+  </div>
+  <div class="content g2" style="align-items:start;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card bad">
+        <h3 class="bad">Current: NSG Flow Logs v2</h3>
+        <p>Resource: <code>azurerm_network_watcher_flow_log</code> targeting <code>azurerm_network_security_group</code>. Requires one flow log per NSG. Captures traffic at the NSG evaluation layer only.</p>
+        <ul style="font-size:12px;color:var(--muted);padding-left:14px;margin-top:8px;line-height:2">
+          <li class="minus">One resource per NSG — grows with the number of spokes</li>
+          <li class="minus">Does not capture traffic that bypasses NSG (e.g., within-subnet)</li>
+          <li class="minus">Deprecated — Microsoft targeting removal</li>
+          <li class="minus">Separate storage account required (cost overhead)</li>
+        </ul>
+      </div>
+      <div class="card info">
+        <h3 class="info">What Changes in Practice</h3>
+        <p>Remove the two <code>azurerm_network_watcher_flow_log</code> resources and the <code>azurerm_storage_account.flow_logs</code> storage account. Replace with a single VNet flow log targeting the VNets directly. Log Analytics is still the destination — Traffic Analytics continues to work.</p>
+        <div class="code" style="margin-top:10px">
+<span class="cmt"># New resource type</span>
+<span class="kw">resource</span> <span class="fn">"azurerm_network_watcher_flow_log"</span> <span class="str">"app_vnet"</span> {
+  target_resource_id = <span class="val">azurerm_virtual_network.app.id</span>
+  <span class="cmt"># storage_account no longer required</span>
+  <span class="cmt"># when targeting a VNet</span>
+}
+        </div>
+      </div>
+    </div>
+    <div>
+      <table class="cmp-table">
+        <tr><th>Feature</th><th>NSG Flow Logs</th><th>VNet Flow Logs</th></tr>
+        <tr><td>Scope</td><td>Per NSG</td><td class="plus">Per VNet</td></tr>
+        <tr><td>Coverage</td><td>NSG-evaluated traffic</td><td class="plus">All VNet traffic</td></tr>
+        <tr><td>Storage required</td><td class="minus">Yes (separate SA)</td><td class="plus">Optional</td></tr>
+        <tr><td>Traffic Analytics</td><td class="plus">Supported</td><td class="plus">Supported</td></tr>
+        <tr><td>Subnet-level detail</td><td>NSG-only</td><td class="plus">All subnets</td></tr>
+        <tr><td>Resources needed</td><td class="minus">1 per NSG</td><td class="plus">1 per VNet</td></tr>
+        <tr><td>Microsoft status</td><td class="minus">Deprecated</td><td class="plus">Current</td></tr>
+        <tr><td>Cost model</td><td>Per GB logged</td><td>Per GB logged</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 6 — FIREWALL STANDARD vs PREMIUM
+══════════════════════════════════════════════════════════ -->
+<section class="slide" id="s6">
+  <div class="slide-header">
+    <div class="tag info">🔥 Azure Firewall Tiers</div>
+    <h2>Firewall Standard vs. Premium — When to Upgrade</h2>
+  </div>
+  <div class="content" style="display:flex;flex-direction:column;gap:14px">
+    <table class="cmp-table">
+      <tr><th>Capability</th><th>Basic</th><th>Standard (current)</th><th>Premium</th></tr>
+      <tr><td>Network rules (L4)</td><td class="plus">✓</td><td class="plus">✓</td><td class="plus">✓</td></tr>
+      <tr><td>Application rules (FQDN)</td><td class="minus">✗</td><td class="plus">✓</td><td class="plus">✓</td></tr>
+      <tr><td>Threat Intelligence feed</td><td class="minus">Alert only</td><td class="plus">Alert + Deny</td><td class="plus">Alert + Deny</td></tr>
+      <tr><td>IDPS (signature-based IDS/IPS)</td><td class="minus">✗</td><td class="minus">✗</td><td class="plus">✓ — 58,000+ signatures</td></tr>
+      <tr><td>TLS inspection (decrypt &amp; inspect)</td><td class="minus">✗</td><td class="minus">✗</td><td class="plus">✓</td></tr>
+      <tr><td>URL filtering (category-based)</td><td class="minus">✗</td><td class="minus">✗</td><td class="plus">✓</td></tr>
+      <tr><td>Web categories (block social/gambling)</td><td class="minus">✗</td><td class="neutral">Basic</td><td class="plus">Full</td></tr>
+      <tr><td>Firewall Policy support</td><td class="minus">✗</td><td class="plus">✓</td><td class="plus">✓</td></tr>
+      <tr><td>Price (approx.)</td><td>~$300/mo</td><td>~$900/mo</td><td>~$1,200/mo</td></tr>
+    </table>
+    <div class="g2" style="gap:14px">
+      <div class="card good">
+        <h3 class="good">Keep Standard When</h3>
+        <ul style="font-size:12px;color:var(--muted);padding-left:14px;line-height:2.1">
+          <li>Workloads are internal-only (no internet-facing apps)</li>
+          <li>Threat Intel + FQDN filtering is sufficient</li>
+          <li>Budget is constrained — Standard covers 80% of use cases</li>
+          <li>No compliance requirement for IPS/TLS inspection</li>
+        </ul>
+      </div>
+      <div class="card warn">
+        <h3 class="warn">Upgrade to Premium When</h3>
+        <ul style="font-size:12px;color:var(--muted);padding-left:14px;line-height:2.1">
+          <li>Regulatory compliance requires IDS/IPS (PCI-DSS, ISO 27001)</li>
+          <li>Workloads communicate with untrusted external APIs</li>
+          <li>Need to block malware C2 traffic hidden in HTTPS</li>
+          <li>URL category filtering required (block social media, gambling)</li>
+          <li>East-West inspection between spokes is required</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 7 — HUB-SPOKE vs AZURE VIRTUAL WAN
+══════════════════════════════════════════════════════════ -->
+<section class="slide" id="s7">
+  <div class="slide-header">
+    <div class="tag info">🌐 Topology Comparison</div>
+    <h2>Hub-and-Spoke vs. Azure Virtual WAN</h2>
+    <p>Both achieve centralised connectivity. The right choice depends on scale, hybrid requirements, and operational complexity tolerance.</p>
+  </div>
+  <div class="content" style="display:flex;flex-direction:column;gap:14px">
+    <table class="cmp-table">
+      <tr><th>Dimension</th><th>Hub-and-Spoke (current)</th><th>Azure Virtual WAN</th></tr>
+      <tr><td>Management model</td><td>Self-managed VNets + peerings</td><td class="plus">Microsoft-managed hub fabric</td></tr>
+      <tr><td>Peering limit</td><td class="minus">500 per VNet</td><td class="plus">Thousands of spokes via vHub</td></tr>
+      <tr><td>Routing control</td><td class="plus">Full UDR control per subnet</td><td class="minus">Limited — vHub routing tables</td></tr>
+      <tr><td>VPN / ExpressRoute integration</td><td>Manual — VPN Gateway in Hub</td><td class="plus">Built-in, multi-link ER support</td></tr>
+      <tr><td>Transit connectivity (spoke-to-spoke)</td><td class="minus">Requires Firewall or NVA in hub</td><td class="plus">Native any-to-any via vHub</td></tr>
+      <tr><td>Firewall integration</td><td class="plus">Azure Firewall in Hub VNet</td><td class="plus">Azure Firewall Manager + Secured Hub</td></tr>
+      <tr><td>Cost</td><td class="plus">Pay for individual services</td><td class="minus">vHub hourly + data processing fees</td></tr>
+      <tr><td>Terraform maturity</td><td class="plus">Full azurerm coverage</td><td class="neutral">Partial — some Portal-only config</td></tr>
+      <tr><td>Ideal scale</td><td>1–20 spokes</td><td class="plus">20+ spokes, multi-region</td></tr>
+    </table>
+    <div class="card azure">
+      <h3>Verdict for This Project</h3>
+      <p>With two spokes and a single region, Virtual WAN adds cost and complexity without benefit. Hub-and-Spoke is the right choice here. Virtual WAN becomes worth evaluating when spoke count exceeds ~15, when multi-region transit is required, or when managing ExpressRoute at scale.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 8 — DNS: RESOLVER vs CUSTOM VMs
+══════════════════════════════════════════════════════════ -->
+<section class="slide" id="s8">
+  <div class="slide-header">
+    <div class="tag warn">⚠️ DNS Gap</div>
+    <h2>What Should Be in sn-dns — and How</h2>
+    <p>The <code>sn-dns</code> subnet (<code>10.0.4.0/24</code>) is allocated but empty. Two main options exist.</p>
+  </div>
+  <div class="content" style="display:flex;flex-direction:column;gap:14px">
+    <div class="g2" style="gap:14px">
+      <div class="card">
+        <h3>Option A — Azure DNS Private Resolver (recommended)</h3>
+        <p>PaaS service — no VMs to patch. Deployed into the subnet with an inbound endpoint (receives DNS queries) and an optional outbound endpoint (conditional forwarding to on-prem).</p>
+        <table class="cmp-table" style="margin-top:10px">
+          <tr><td class="plus">No VM maintenance</td></tr>
+          <tr><td class="plus">HA by default (zone-redundant)</td></tr>
+          <tr><td class="plus">Supports conditional forwarding to on-prem</td></tr>
+          <tr><td class="plus">DNS query logs to Log Analytics</td></tr>
+          <tr><td class="minus">~$150/mo per resolver endpoint</td></tr>
+          <tr><td class="minus">No local caching (slight latency vs. VM)</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Option B — Custom DNS VMs (Windows DNS / Unbound)</h3>
+        <p>Two VMs in sn-dns act as forwarders. Forward private zone queries to <code>168.63.129.16</code>; forward on-prem zones to on-prem resolver.</p>
+        <table class="cmp-table" style="margin-top:10px">
+          <tr><td class="plus">Full control — any DNS software</td></tr>
+          <tr><td class="plus">Local caching reduces latency</td></tr>
+          <tr><td class="plus">Works with legacy on-prem DNS</td></tr>
+          <tr><td class="minus">OS patching, HA configuration needed</td></tr>
+          <tr><td class="minus">NIC-level custom DNS must be set on VNets</td></tr>
+          <tr><td class="minus">Boot-time DNS chicken-and-egg on first deploy</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card azure">
+      <h3>Minimum Viable Fix (no resolver deployed yet)</h3>
+      <p>Set <code>dns_servers = ["168.63.129.16"]</code> explicitly on all VNets in Terraform. This forces Azure-default DNS and ensures Private DNS zone lookups work consistently — even before a resolver is deployed. Without this, spoke VMs may inherit stale or region-incorrect DNS settings after DHCP renewal.</p>
+      <div class="code" style="margin-top:10px">
+<span class="kw">resource</span> <span class="fn">"azurerm_virtual_network"</span> <span class="str">"app"</span> {
+  <span class="cmt"># explicit Azure DNS — guaranteed Private DNS resolution</span>
+  dns_servers = [<span class="str">"168.63.129.16"</span>]
+}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 9 — MISSING GOVERNANCE LAYER
+══════════════════════════════════════════════════════════ -->
+<section class="slide" id="s9">
+  <div class="slide-header">
+    <div class="tag warn">⚠️ Missing Layers</div>
+    <h2>DDoS Protection · Azure Policy · Defender for Cloud</h2>
+  </div>
+  <div class="content g3" style="align-items:start;gap:14px">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card warn">
+        <h3 class="warn">DDoS Protection</h3>
+        <p>Both public IPs (Firewall, Bastion) are unprotected. Azure provides basic DDoS mitigation for free, but <strong style="color:var(--text)">DDoS Network Protection</strong> adds adaptive tuning, rapid response, and cost protection guarantees.</p>
+        <div style="margin-top:10px">
+          <span class="badge badge-yellow">~$2,700/mo per plan</span>
+          <span class="badge badge-green">Covers all public IPs in linked VNets</span>
+        </div>
+        <p style="margin-top:8px">For non-production environments, basic is acceptable. For production with SLA commitments, Network Protection is justified.</p>
+      </div>
+      <div class="card warn">
+        <h3 class="warn">Azure Policy</h3>
+        <p>No guardrails prevent configuration drift. Without Policy, a future deployment can introduce:</p>
+        <ul style="font-size:12px;color:var(--muted);padding-left:14px;margin-top:6px;line-height:2">
+          <li>VMs with public IPs in spokes</li>
+          <li>Storage accounts without TLS 1.2</li>
+          <li>Resources missing required tags</li>
+          <li>Subnets without NSG associations</li>
+          <li>Unapproved regions for deployment</li>
+        </ul>
+        <p style="margin-top:8px">Policies can be assigned at subscription or management-group level and enforced via <code>azurerm_policy_assignment</code> in Terraform.</p>
+      </div>
+      <div class="card warn">
+        <h3 class="warn">Microsoft Defender for Cloud</h3>
+        <p>No Defender plans are enabled. Defender for Servers, Key Vault, Storage, and DNS provide runtime threat detection beyond what the Firewall and NSG logs expose.</p>
+        <ul style="font-size:12px;color:var(--muted);padding-left:14px;margin-top:6px;line-height:2">
+          <li>Defender for Servers — MDEAV, JIT access</li>
+          <li>Defender for Key Vault — exfiltration alerts</li>
+          <li>Defender for Storage — malware scanning</li>
+          <li>Secure Score — continuous posture assessment</li>
+        </ul>
+        <div class="code" style="margin-top:10px;font-size:11px">
+<span class="kw">resource</span> <span class="fn">"azurerm_security_center_subscription_pricing"</span> <span class="str">"servers"</span> {
+  tier          = <span class="str">"Standard"</span>
+  resource_type = <span class="str">"VirtualMachines"</span>
+}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 10 — IMPROVEMENT ROADMAP
+══════════════════════════════════════════════════════════ -->
+<section class="slide" id="s10">
+  <div class="slide-header">
+    <div class="tag info">📋 Roadmap</div>
+    <h2>Prioritised Improvement Backlog</h2>
+  </div>
+  <div class="content g2" style="align-items:start;gap:16px">
+    <div>
+      <div class="pri p1">
+        <div class="pri-num">1</div>
+        <div class="pri-body">
+          <strong>Add NSG security rules</strong>
+          <span>Define inbound/outbound rules for web, app, and PEP subnets. Separate NSGs per tier for microsegmentation. Currently zero rules = zero East-West control.</span>
+        </div>
+      </div>
+      <div class="pri p1">
+        <div class="pri-num">2</div>
+        <div class="pri-body">
+          <strong>Add Private DNS link for MGMT VNet</strong>
+          <span>One-line fix: add an <code>azurerm_private_dns_zone_virtual_network_link</code> for <code>azurerm_virtual_network.mgmt</code>. Jump VMs need private DNS resolution.</span>
+        </div>
+      </div>
+      <div class="pri p1">
+        <div class="pri-num">3</div>
+        <div class="pri-body">
+          <strong>Tighten Firewall rules</strong>
+          <span>Scope source from <code>10.0.0.0/8</code> to per-spoke CIDRs. Replace wildcard DNS destination with known resolvers. Remove port 80. Scope Azure FQDNs to specific endpoints.</span>
+        </div>
+      </div>
+      <div class="pri p2">
+        <div class="pri-num">4</div>
+        <div class="pri-body">
+          <strong>Migrate NSG flow logs → VNet flow logs</strong>
+          <span>Replace <code>azurerm_network_watcher_flow_log</code> (NSG target) with VNet-targeted resources. Remove the flow logs storage account. Reduces resource count and future-proofs monitoring.</span>
+        </div>
+      </div>
+      <div class="pri p2">
+        <div class="pri-num">5</div>
+        <div class="pri-body">
+          <strong>Deploy Azure DNS Private Resolver into sn-dns</strong>
+          <span>Activates the reserved subnet. Enables conditional forwarding to on-prem zones and DNS query logging. Use inbound endpoint IP as <code>dns_servers</code> on all spoke VNets.</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="pri p2">
+        <div class="pri-num">6</div>
+        <div class="pri-body">
+          <strong>Deploy at least one Private Endpoint</strong>
+          <span>Add a Key Vault or Storage private endpoint in sn-pep with a DNS A-record in the existing zones. Completes the private connectivity model end-to-end.</span>
+        </div>
+      </div>
+      <div class="pri p3">
+        <div class="pri-num">7</div>
+        <div class="pri-body">
+          <strong>Fix Network Watcher naming / import</strong>
+          <span>Either adopt the Azure-generated name in Terraform or use a <code>data</code> source for the Network Watcher. Remove the manual import requirement from the operational runbook.</span>
+        </div>
+      </div>
+      <div class="pri p3">
+        <div class="pri-num">8</div>
+        <div class="pri-body">
+          <strong>Add Azure Policy assignments</strong>
+          <span>Enforce: no public IPs on spoke NICs, required tag set, NSG on all subnets, TLS 1.2 on storage. Prevents configuration drift as the platform grows.</span>
+        </div>
+      </div>
+      <div class="pri p4">
+        <div class="pri-num">9</div>
+        <div class="pri-body">
+          <strong>Enable Defender for Cloud (Key Vault + Storage)</strong>
+          <span>Low-cost Defender plans for Key Vault and Storage provide threat intelligence that flow logs alone cannot surface (exfiltration patterns, anomalous access).</span>
+        </div>
+      </div>
+      <div class="pri p4">
+        <div class="pri-num">10</div>
+        <div class="pri-body">
+          <strong>Evaluate Firewall Premium for IDPS</strong>
+          <span>If workloads are internet-facing or compliance requires IPS, upgrade. Otherwise Standard is cost-appropriate. Revisit when first spoke hosts a public-facing service.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SLIDE 11 — SUMMARY
+══════════════════════════════════════════════════════════ -->
+<section class="slide" id="s11">
+  <div style="position:relative;z-index:1;text-align:center">
+    <div class="big-icon">🔍</div>
+    <div class="tag" style="display:inline-flex;margin-bottom:20px">Architecture Review Complete</div>
+    <h1>Solid foundation —<br><span class="accent">clear path forward</span></h1>
+    <p style="margin-top:16px;font-size:14px;color:var(--muted);max-width:620px;margin-left:auto;margin-right:auto;line-height:1.8">
+      The topology, IaC patterns, and monitoring stack are well-designed. The critical gaps — empty NSGs, missing DNS links for MGMT, and overly broad Firewall rules — are all fixable with targeted changes. No architectural rework is needed; the foundations are correct.
+    </p>
+    <div style="display:flex;gap:20px;justify-content:center;margin-top:28px;flex-wrap:wrap">
+      <div style="text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--green)">6</div>
+        <div style="font-size:12px;color:var(--muted)">Strengths identified</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--red)">5</div>
+        <div style="font-size:12px;color:var(--muted)">Critical / medium gaps</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--orange)">4</div>
+        <div style="font-size:12px;color:var(--muted)">Design comparisons</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--purple)">10</div>
+        <div style="font-size:12px;color:var(--muted)">Prioritised improvements</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<nav>
+  <button id="prev" onclick="go(-1)">&#8592;</button>
+  <div class="dot-row" id="dots"></div>
+  <span id="counter">1 / 11</span>
+  <button id="next" onclick="go(1)">&#8594;</button>
+</nav>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const total  = slides.length;
+let cur = 0;
+
+const dotsEl    = document.getElementById('dots');
+const counterEl = document.getElementById('counter');
+const prevBtn   = document.getElementById('prev');
+const nextBtn   = document.getElementById('next');
+const progress  = document.getElementById('progress');
+
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' on' : '');
+  d.onclick = () => jumpTo(i);
+  dotsEl.appendChild(d);
+});
+
+function render() {
+  slides.forEach((s, i) => { s.classList.remove('active', 'exit'); if (i === cur) s.classList.add('active'); });
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === cur));
+  counterEl.textContent = `${cur + 1} / ${total}`;
+  prevBtn.disabled = cur === 0;
+  nextBtn.disabled = cur === total - 1;
+  progress.style.width = `${((cur + 1) / total) * 100}%`;
+}
+
+function go(dir) {
+  const next = cur + dir;
+  if (next < 0 || next >= total) return;
+  slides[cur].classList.add('exit');
+  cur = next; render();
+}
+
+function jumpTo(i) {
+  if (i === cur) return;
+  slides[cur].classList.add('exit');
+  cur = i; render();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+  if (e.key === 'Home') jumpTo(0);
+  if (e.key === 'End')  jumpTo(total - 1);
+});
+
+let tx = 0;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+document.addEventListener('touchend',   e => { const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); });
+
+render();
+</script>
+</body>
+</html>
