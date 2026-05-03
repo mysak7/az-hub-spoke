@@ -46,6 +46,82 @@ resource "azuread_application_password" "status_page" {
   end_date       = "2027-12-31T00:00:00Z"
 }
 
+# ── App registrations for target apps ──────────────────────────────────────
+
+resource "azuread_application" "hr_portal" {
+  display_name     = "app-hr-portal-${var.environment}"
+  sign_in_audience = "AzureADMyOrg"
+
+  web {
+    redirect_uris = [
+      "https://${local.hr_app_name}.azurewebsites.net/.auth/login/aad/callback"
+    ]
+    implicit_grant {
+      id_token_issuance_enabled = true
+    }
+  }
+}
+
+resource "azuread_service_principal" "hr_portal" {
+  client_id = azuread_application.hr_portal.client_id
+}
+
+resource "azuread_application_password" "hr_portal" {
+  application_id = azuread_application.hr_portal.id
+  display_name   = "hr-portal-secret"
+  end_date       = "2027-12-31T00:00:00Z"
+}
+
+resource "azuread_application" "finance_dashboard" {
+  display_name     = "app-finance-dashboard-${var.environment}"
+  sign_in_audience = "AzureADMyOrg"
+
+  web {
+    redirect_uris = [
+      "https://${local.finance_app_name}.azurewebsites.net/.auth/login/aad/callback"
+    ]
+    implicit_grant {
+      id_token_issuance_enabled = true
+    }
+  }
+}
+
+resource "azuread_service_principal" "finance_dashboard" {
+  client_id = azuread_application.finance_dashboard.client_id
+}
+
+resource "azuread_application_password" "finance_dashboard" {
+  application_id = azuread_application.finance_dashboard.id
+  display_name   = "finance-dashboard-secret"
+  end_date       = "2027-12-31T00:00:00Z"
+}
+
+resource "azuread_application" "admin_portal" {
+  display_name     = "app-admin-portal-${var.environment}"
+  sign_in_audience = "AzureADMyOrg"
+
+  web {
+    redirect_uris = [
+      "https://${local.admin_app_name}.azurewebsites.net/.auth/login/aad/callback"
+    ]
+    implicit_grant {
+      id_token_issuance_enabled = true
+    }
+  }
+}
+
+resource "azuread_service_principal" "admin_portal" {
+  client_id = azuread_application.admin_portal.client_id
+}
+
+resource "azuread_application_password" "admin_portal" {
+  application_id = azuread_application.admin_portal.id
+  display_name   = "admin-portal-secret"
+  end_date       = "2027-12-31T00:00:00Z"
+}
+
+# ── Entra ID groups ─────────────────────────────────────────────────────────
+
 resource "azuread_group" "hr_users" {
   display_name     = "grp-hr-users"
   security_enabled = true

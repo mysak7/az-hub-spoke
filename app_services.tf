@@ -50,6 +50,7 @@ resource "azurerm_linux_web_app" "hr" {
   location                  = var.location
   service_plan_id           = azurerm_service_plan.apps.id
   virtual_network_subnet_id = azurerm_subnet.webapps.id
+  https_only                = true
   zip_deploy_file           = data.archive_file.placeholder.output_path
 
   site_config {
@@ -63,6 +64,25 @@ resource "azurerm_linux_web_app" "hr" {
     "APP_TITLE"                      = "HR Portal"
     "APP_DESCRIPTION"                = "Human Resources management and employee records"
     "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
+    "AZURE_CLIENT_SECRET"            = azuread_application_password.hr_portal.value
+  }
+
+  auth_settings_v2 {
+    auth_enabled           = true
+    require_authentication = true
+    unauthenticated_action = "RedirectToLoginPage"
+    default_provider       = "azureactivedirectory"
+
+    active_directory_v2 {
+      client_id                  = azuread_application.hr_portal.client_id
+      tenant_auth_endpoint       = "https://login.microsoftonline.com/${data.azuread_client_config.current.tenant_id}/v2.0"
+      client_secret_setting_name = "AZURE_CLIENT_SECRET"
+      allowed_groups             = [azuread_group.hr_users.object_id]
+    }
+
+    login {
+      token_store_enabled = true
+    }
   }
 
   tags = local.tags
@@ -74,6 +94,7 @@ resource "azurerm_linux_web_app" "finance" {
   location                  = var.location
   service_plan_id           = azurerm_service_plan.apps.id
   virtual_network_subnet_id = azurerm_subnet.webapps.id
+  https_only                = true
   zip_deploy_file           = data.archive_file.placeholder.output_path
 
   site_config {
@@ -87,6 +108,25 @@ resource "azurerm_linux_web_app" "finance" {
     "APP_TITLE"                      = "Finance Dashboard"
     "APP_DESCRIPTION"                = "Financial reporting, budgets and analytics"
     "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
+    "AZURE_CLIENT_SECRET"            = azuread_application_password.finance_dashboard.value
+  }
+
+  auth_settings_v2 {
+    auth_enabled           = true
+    require_authentication = true
+    unauthenticated_action = "RedirectToLoginPage"
+    default_provider       = "azureactivedirectory"
+
+    active_directory_v2 {
+      client_id                  = azuread_application.finance_dashboard.client_id
+      tenant_auth_endpoint       = "https://login.microsoftonline.com/${data.azuread_client_config.current.tenant_id}/v2.0"
+      client_secret_setting_name = "AZURE_CLIENT_SECRET"
+      allowed_groups             = [azuread_group.finance_users.object_id]
+    }
+
+    login {
+      token_store_enabled = true
+    }
   }
 
   tags = local.tags
@@ -98,6 +138,7 @@ resource "azurerm_linux_web_app" "admin_portal" {
   location                  = var.location
   service_plan_id           = azurerm_service_plan.apps.id
   virtual_network_subnet_id = azurerm_subnet.webapps.id
+  https_only                = true
   zip_deploy_file           = data.archive_file.placeholder.output_path
 
   site_config {
@@ -111,6 +152,25 @@ resource "azurerm_linux_web_app" "admin_portal" {
     "APP_TITLE"                      = "Admin Portal"
     "APP_DESCRIPTION"                = "Platform administration and configuration"
     "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
+    "AZURE_CLIENT_SECRET"            = azuread_application_password.admin_portal.value
+  }
+
+  auth_settings_v2 {
+    auth_enabled           = true
+    require_authentication = true
+    unauthenticated_action = "RedirectToLoginPage"
+    default_provider       = "azureactivedirectory"
+
+    active_directory_v2 {
+      client_id                  = azuread_application.admin_portal.client_id
+      tenant_auth_endpoint       = "https://login.microsoftonline.com/${data.azuread_client_config.current.tenant_id}/v2.0"
+      client_secret_setting_name = "AZURE_CLIENT_SECRET"
+      allowed_groups             = [azuread_group.platform_admins.object_id]
+    }
+
+    login {
+      token_store_enabled = true
+    }
   }
 
   tags = local.tags
