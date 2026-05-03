@@ -5,6 +5,14 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "4.20.0"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
   }
 }
 
@@ -12,6 +20,8 @@ provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
 }
+
+provider "azuread" {}
 
 locals {
   tags = {
