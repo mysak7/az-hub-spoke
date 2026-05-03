@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deployment Session — Azure Hub-and-Spoke</title>
+<style>
+  :root {
+    --azure:    #0078d4;
+    --azure-dk: #004578;
+    --azure-lt: #50e6ff;
+    --bg:       #0a0f1e;
+    --surface:  #111827;
+    --surface2: #1a2235;
+    --border:   #1e3a5f;
+    --text:     #e8f0fe;
+    --muted:    #8babc7;
+    --green:    #4ade80;
+    --orange:   #fb923c;
+    --purple:   #a78bfa;
+    --red:      #f87171;
+    --yellow:   #facc15;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+
+  .deck { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 48px 64px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: all; }
+
+  /* nav */
+  .nav {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 12px; align-items: center; z-index: 100;
+  }
+  .nav button {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 8px 22px; border-radius: 6px;
+    font-size: 14px; cursor: pointer; transition: background 0.2s;
+  }
+  .nav button:hover { background: var(--azure-dk); }
+  .nav button:disabled { opacity: 0.3; cursor: default; }
+  .counter { color: var(--muted); font-size: 13px; min-width: 60px; text-align: center; }
+
+  /* progress bar */
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--azure); transition: width 0.4s ease; z-index: 200; }
+
+  /* typography */
+  h1 { font-size: clamp(28px, 4vw, 48px); font-weight: 700; letter-spacing: -0.5px; line-height: 1.1; }
+  h2 { font-size: clamp(20px, 2.5vw, 30px); font-weight: 600; margin-bottom: 28px; color: var(--azure-lt); }
+  h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; color: var(--azure-lt); }
+  p, li { font-size: clamp(13px, 1.3vw, 16px); line-height: 1.65; color: var(--muted); }
+  .sub { font-size: clamp(14px, 1.5vw, 18px); color: var(--muted); margin-top: 14px; max-width: 680px; text-align: center; }
+
+  /* cards */
+  .cards { display: grid; gap: 18px; width: 100%; max-width: 1000px; }
+  .cards.c2 { grid-template-columns: 1fr 1fr; }
+  .cards.c3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 22px 24px;
+  }
+  .card ul { padding-left: 18px; }
+  .card li { margin-bottom: 6px; }
+
+  /* pill badges */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin: 3px 3px 3px 0;
+  }
+  .badge.green  { background: #052e16; color: var(--green); border: 1px solid #14532d; }
+  .badge.orange { background: #1c0a00; color: var(--orange); border: 1px solid #7c2d12; }
+  .badge.blue   { background: #0c1a2e; color: var(--azure-lt); border: 1px solid var(--border); }
+  .badge.purple { background: #1a0f2e; color: var(--purple); border: 1px solid #3b0764; }
+  .badge.red    { background: #1f0000; color: var(--red); border: 1px solid #7f1d1d; }
+  .badge.yellow { background: #1f1500; color: var(--yellow); border: 1px solid #713f12; }
+
+  /* timeline */
+  .timeline { display: flex; flex-direction: column; gap: 0; width: 100%; max-width: 800px; }
+  .step {
+    display: flex; gap: 20px; align-items: flex-start;
+    padding-bottom: 22px; position: relative;
+  }
+  .step:not(:last-child)::before {
+    content: ''; position: absolute; left: 16px; top: 32px;
+    width: 2px; bottom: 0; background: var(--border);
+  }
+  .dot {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; z-index: 1;
+  }
+  .dot.green  { background: #052e16; border: 2px solid var(--green); color: var(--green); }
+  .dot.orange { background: #1c0a00; border: 2px solid var(--orange); color: var(--orange); }
+  .dot.blue   { background: #0c1a2e; border: 2px solid var(--azure-lt); color: var(--azure-lt); }
+  .dot.red    { background: #1f0000; border: 2px solid var(--red); color: var(--red); }
+  .step-body { flex: 1; padding-top: 5px; }
+  .step-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .step-desc  { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* output table */
+  .out-table { width: 100%; max-width: 800px; border-collapse: collapse; }
+  .out-table th, .out-table td { padding: 10px 16px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border); }
+  .out-table th { color: var(--azure-lt); font-weight: 600; background: var(--surface2); }
+  .out-table td { color: var(--muted); }
+  .out-table td.val { color: var(--green); font-family: monospace; font-size: 13px; }
+
+  /* diff block */
+  .diff { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; width: 100%; max-width: 800px; }
+  .diff pre { font-family: 'Consolas', monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+  .diff .del { color: var(--red); }
+  .diff .add { color: var(--green); }
+  .diff .ctx { color: var(--muted); }
+
+  /* title slide accent */
+  .title-accent { font-size: clamp(60px, 8vw, 96px); opacity: 0.06; position: absolute; top: 30px; right: 60px; font-weight: 900; letter-spacing: -4px; pointer-events: none; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; justify-content: center; }
+
+  /* fix large */
+  .fix-item { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; width: 100%; max-width: 820px; }
+  .fix-num { width: 28px; height: 28px; border-radius: 50%; background: var(--azure-dk); border: 1px solid var(--azure); color: var(--azure-lt); font-weight: 700; font-size: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .fix-body h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .fix-body p  { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck" id="deck">
+
+  <!-- 1 TITLE -->
+  <div class="slide active">
+    <div class="title-accent">DEPLOY</div>
+    <h1 style="text-align:center">Live Deployment Session</h1>
+    <p class="sub">Bootstrapping the Azure Hub-and-Spoke infrastructure on a fresh subscription — from zero to fully deployed.</p>
+    <div class="tag-row">
+      <span class="badge blue">Terraform 4.20.0</span>
+      <span class="badge blue">azurerm provider</span>
+      <span class="badge blue">Sweden Central</span>
+      <span class="badge green">Deploy: SUCCESS</span>
+    </div>
+    <p style="margin-top:32px; font-size:13px; color:var(--muted)">2026-05-03 &nbsp;·&nbsp; Subscription 5ffa7688</p>
+  </div>
+
+  <!-- 2 WHAT WE STARTED WITH -->
+  <div class="slide">
+    <h2>Starting State</h2>
+    <div class="cards c2" style="max-width:820px">
+      <div class="card">
+        <h3>Code was ready</h3>
+        <ul>
+          <li>Full Terraform codebase committed</li>
+          <li>Flat structure (no modules) per style guide</li>
+          <li>Hub, App spoke, Mgmt spoke defined</li>
+          <li>Firewall, Bastion, DNS, monitoring all wired</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Account was not</h3>
+        <ul>
+          <li><span class="badge red">MISSING</span> <code>subscription_id</code> in tfvars</li>
+          <li><span class="badge red">MISSING</span> Terraform state backend</li>
+          <li><span class="badge red">BLOCKED</span> Azure API changes since last run</li>
+          <li>No tfstate storage account in new sub</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 TIMELINE -->
+  <div class="slide">
+    <h2>Deployment Steps</h2>
+    <div class="timeline">
+      <div class="step">
+        <div class="dot blue">1</div>
+        <div class="step-body">
+          <div class="step-title">Detected existing Azure login</div>
+          <div class="step-desc"><code>az account show</code> confirmed subscription 5ffa7688 was active — no interactive login needed.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="dot blue">2</div>
+        <div class="step-body">
+          <div class="step-title">Populated subscription_id in dev.tfvars</div>
+          <div class="step-desc">The value was blank. Set to <code>5ffa7688-ecf9-4b9e-8f17-ab20790b0673</code>.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="dot orange">3</div>
+        <div class="step-body">
+          <div class="step-title">Storage account name collision → renamed</div>
+          <div class="step-desc"><code>stdevterraformtfstate</code> was globally taken by another tenant. Renamed to <code>stdevtfstate5ffa7688</code> (subscription-scoped unique suffix). Updated both <code>prepare-dev.sh</code> and <code>init-dev.sh</code>.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="dot green">4</div>
+        <div class="step-body">
+          <div class="step-title">Ran prepare-dev.sh — backend bootstrapped</div>
+          <div class="step-desc">Created resource group, storage account, blob container, and assigned <em>Storage Blob Data Contributor</em> to the signed-in user.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="dot green">5</div>
+        <div class="step-body">
+          <div class="step-title">terraform init + plan — clean</div>
+          <div class="step-desc">Backend configured via <code>init-dev.sh</code>. Plan produced 30+ resources to create after fixing provider API issues.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="dot red">6</div>
+        <div class="step-body">
+          <div class="step-title">First apply — 3 Azure API errors</div>
+          <div class="step-desc">All core networking, Firewall, and Bastion deployed successfully. Monitoring resources hit API deprecations (see next slides).</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="dot green">7</div>
+        <div class="step-body">
+          <div class="step-title">Fixed monitoring.tf → second apply succeeded</div>
+          <div class="step-desc">3 resources added, 1 updated. Apply complete — all outputs emitted.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 FIXES -->
+  <div class="slide">
+    <h2>API Fixes Required</h2>
+    <div class="fix-item">
+      <div class="fix-num">1</div>
+      <div class="fix-body">
+        <h4>enabled_metric block removed (azurerm 4.x)</h4>
+        <p>The <code>enabled_metric { category = "AllMetrics" }</code> block in <code>azurerm_monitor_diagnostic_setting</code> was dropped in the azurerm 4.x provider. Metrics are captured implicitly — the block was removed.</p>
+      </div>
+    </div>
+    <div class="fix-item">
+      <div class="fix-num">2</div>
+      <div class="fix-body">
+        <h4>NSG flow logs creation blocked since 2025-06-30</h4>
+        <p>Azure retired new NSG flow log creation. Both <code>fl-app-dev</code> and <code>fl-mgmt-dev</code> were migrated from <code>network_security_group_id</code> to <code>target_resource_id</code> pointing to the App and Mgmt VNets (VNet flow logs).</p>
+      </div>
+    </div>
+    <div class="fix-item">
+      <div class="fix-num">3</div>
+      <div class="fix-body">
+        <h4>AZFWDnsProxy log category unsupported</h4>
+        <p>The <code>AZFWDnsProxy</code> diagnostic category is not available for Azure Firewall Standard tier in Sweden Central. Removed from the firewall diagnostic setting — other five categories (NetworkRule, AppRule, NatRule, ThreatIntel, IdpsSignature) are retained.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 DIFF -->
+  <div class="slide">
+    <h2>Key Code Change — Flow Log Migration</h2>
+    <div class="diff">
+      <pre><span class="ctx"> resource "azurerm_network_watcher_flow_log" "app" {</span>
+<span class="del">-  network_security_group_id = azurerm_network_security_group.app.id</span>
+<span class="add">+  target_resource_id        = azurerm_virtual_network.app.id</span>
+<span class="del">-  version                   = 2</span>
+<span class="ctx">   storage_account_id        = azurerm_storage_account.flow_logs.id
+   enabled                   = true
+   ...
+ }</span>
+
+<span class="ctx"> resource "azurerm_network_watcher_flow_log" "mgmt" {</span>
+<span class="del">-  network_security_group_id = azurerm_network_security_group.mgmt.id</span>
+<span class="add">+  target_resource_id        = azurerm_virtual_network.mgmt.id</span>
+<span class="del">-  version                   = 2</span>
+<span class="ctx">   ...
+ }</span>
+
+<span class="ctx"> # firewall diagnostic setting</span>
+<span class="del">-  enabled_log { category = "AZFWDnsProxy" }</span>
+<span class="del">-  enabled_metric { category = "AllMetrics" }</span></pre>
+    </div>
+    <p style="margin-top:16px; font-size:13px; color:var(--muted)">NSG flow logs → VNet flow logs preserves Traffic Analytics integration and Log Analytics export.</p>
+  </div>
+
+  <!-- 6 OUTPUTS -->
+  <div class="slide">
+    <h2>Deployment Outputs</h2>
+    <table class="out-table">
+      <thead>
+        <tr><th>Resource</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Firewall private IP</td><td class="val">10.0.1.4</td></tr>
+        <tr><td>Firewall public IP</td><td class="val">51.107.185.9</td></tr>
+        <tr><td>Bastion public IP</td><td class="val">4.225.166.79</td></tr>
+        <tr><td>Hub VNet</td><td class="val">vnet-dev-sc-hub &nbsp;(10.0.0.0/16)</td></tr>
+        <tr><td>App Spoke VNet</td><td class="val">vnet-dev-sc-app &nbsp;(10.1.0.0/16)</td></tr>
+        <tr><td>Mgmt Spoke VNet</td><td class="val">vnet-dev-sc-mgmt (10.2.0.0/16)</td></tr>
+        <tr><td>Log Analytics Workspace</td><td class="val">law-dev-sc</td></tr>
+        <tr><td>Tfstate storage account</td><td class="val">stdevtfstate5ffa7688</td></tr>
+        <tr><td>Subscription</td><td class="val">5ffa7688-ecf9-4b9e-8f17-ab20790b0673</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 7 WHAT'S DEPLOYED -->
+  <div class="slide">
+    <h2>Deployed Architecture</h2>
+    <div class="cards c3" style="max-width:1000px">
+      <div class="card">
+        <h3>Hub (rg-dev-sc-hub)</h3>
+        <ul>
+          <li>Azure Firewall Standard</li>
+          <li>Firewall Policy + rules</li>
+          <li>Azure Bastion Standard</li>
+          <li>Private DNS zones (blob, vault)</li>
+          <li>Log Analytics Workspace</li>
+          <li>Monitoring alerts (3)</li>
+          <li>Diagnostic settings (2)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>App Spoke (rg-dev-sc-app)</h3>
+        <ul>
+          <li>VNet 10.1.0.0/16</li>
+          <li>Subnets: web, app, pep</li>
+          <li>NSG with rules</li>
+          <li>Route table → Firewall</li>
+          <li>DNS zone VNet links</li>
+          <li>VNet flow log (Traffic Analytics)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Mgmt Spoke (rg-dev-sc-mgmt)</h3>
+        <ul>
+          <li>VNet 10.2.0.0/16</li>
+          <li>Subnets: jump, tools</li>
+          <li>NSG with rules</li>
+          <li>Route table → Firewall</li>
+          <li>Bidirectional VNet peering</li>
+          <li>VNet flow log (Traffic Analytics)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 COMMITS -->
+  <div class="slide">
+    <h2>Commits Made This Session</h2>
+    <div class="timeline" style="max-width:760px">
+      <div class="step">
+        <div class="dot blue">1</div>
+        <div class="step-body">
+          <div class="step-title"><code>0429393</code> — fix: wire up new Azure subscription for dev deployment</div>
+          <div class="step-desc">Set subscription_id · renamed tfstate storage account · removed enabled_metric block</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="dot green">2</div>
+        <div class="step-body">
+          <div class="step-title"><code>fa0451e</code> — fix: migrate monitoring.tf to current Azure APIs</div>
+          <div class="step-desc">NSG flow logs → VNet flow logs · removed AZFWDnsProxy unsupported category</div>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top: 24px; font-size: 13px; color: var(--muted)">Both commits pushed to <code>origin/master</code>.</p>
+  </div>
+
+  <!-- 9 SUMMARY -->
+  <div class="slide">
+    <div class="title-accent">✓</div>
+    <h1 style="text-align:center; color: var(--green)">Deploy Complete</h1>
+    <p class="sub">Hub-and-spoke infrastructure is live in Sweden Central. All 30+ resources deployed. State secured in Azure Blob Storage.</p>
+    <div class="tag-row" style="margin-top: 28px">
+      <span class="badge green">Hub ✓</span>
+      <span class="badge green">App Spoke ✓</span>
+      <span class="badge green">Mgmt Spoke ✓</span>
+      <span class="badge green">Firewall ✓</span>
+      <span class="badge green">Bastion ✓</span>
+      <span class="badge green">VNet Peering ✓</span>
+      <span class="badge green">Private DNS ✓</span>
+      <span class="badge green">Monitoring ✓</span>
+      <span class="badge green">Flow Logs ✓</span>
+      <span class="badge green">Remote State ✓</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Nav -->
+<div class="nav">
+  <button id="prev" onclick="go(-1)" disabled>← Prev</button>
+  <span class="counter" id="counter">1 / 9</span>
+  <button id="next" onclick="go(1)">Next →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let cur = 0;
+
+  function go(dir) {
+    slides[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(total - 1, cur + dir));
+    slides[cur].classList.add('active');
+    document.getElementById('counter').textContent = (cur + 1) + ' / ' + total;
+    document.getElementById('prev').disabled = cur === 0;
+    document.getElementById('next').disabled = cur === total - 1;
+    document.getElementById('progress').style.width = ((cur + 1) / total * 100) + '%';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+  });
+
+  go(0);
+</script>
+</body>
+</html>
