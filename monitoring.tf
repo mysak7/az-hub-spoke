@@ -92,9 +92,6 @@ resource "azurerm_monitor_diagnostic_setting" "firewall" {
   enabled_log { category = "AZFWIdpsSignature" }
   enabled_log { category = "AZFWDnsProxy" }
 
-  enabled_metric {
-    category = "AllMetrics"
-  }
 }
 
 resource "azurerm_monitor_diagnostic_setting" "bastion" {

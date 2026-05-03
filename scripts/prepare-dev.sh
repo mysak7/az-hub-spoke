@@ -6,7 +6,7 @@ az group create \
     --location swedencentral
 
 az storage account create \
-    --name stdevterraformtfstate \
+    --name stdevtfstate5ffa7688 \
     --resource-group rg-dev-terraform-tfstate \
     --location swedencentral \
     --sku Standard_LRS \
@@ -15,11 +15,11 @@ az storage account create \
 
 az storage container create \
     --name tfstate-hub-spoke \
-    --account-name stdevterraformtfstate \
+    --account-name stdevtfstate5ffa7688 \
     --auth-mode login
 
 az role assignment create \
     --assignee-object-id "$(az ad signed-in-user show --query id -o tsv)" \
     --assignee-principal-type User \
     --role "Storage Blob Data Contributor" \
-    --scope "$(az storage account show --name stdevterraformtfstate --resource-group rg-dev-terraform-tfstate --query id -o tsv)"
+    --scope "$(az storage account show --name stdevtfstate5ffa7688 --resource-group rg-dev-terraform-tfstate --query id -o tsv)"
