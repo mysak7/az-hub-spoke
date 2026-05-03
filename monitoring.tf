@@ -31,15 +31,14 @@ resource "azurerm_network_watcher" "this" {
 }
 
 resource "azurerm_network_watcher_flow_log" "app" {
-  name                      = "fl-app-${var.environment}"
-  network_watcher_name      = azurerm_network_watcher.this.name
-  resource_group_name       = azurerm_resource_group.hub.name
-  network_security_group_id = azurerm_network_security_group.app.id
-  storage_account_id        = azurerm_storage_account.flow_logs.id
-  enabled                   = true
-  version                   = 2
-  location                  = var.location
-  tags                      = local.tags
+  name                 = "fl-app-${var.environment}"
+  network_watcher_name = azurerm_network_watcher.this.name
+  resource_group_name  = azurerm_resource_group.hub.name
+  target_resource_id   = azurerm_virtual_network.app.id
+  storage_account_id   = azurerm_storage_account.flow_logs.id
+  enabled              = true
+  location             = var.location
+  tags                 = local.tags
 
   retention_policy {
     enabled = true
@@ -56,15 +55,14 @@ resource "azurerm_network_watcher_flow_log" "app" {
 }
 
 resource "azurerm_network_watcher_flow_log" "mgmt" {
-  name                      = "fl-mgmt-${var.environment}"
-  network_watcher_name      = azurerm_network_watcher.this.name
-  resource_group_name       = azurerm_resource_group.hub.name
-  network_security_group_id = azurerm_network_security_group.mgmt.id
-  storage_account_id        = azurerm_storage_account.flow_logs.id
-  enabled                   = true
-  version                   = 2
-  location                  = var.location
-  tags                      = local.tags
+  name                 = "fl-mgmt-${var.environment}"
+  network_watcher_name = azurerm_network_watcher.this.name
+  resource_group_name  = azurerm_resource_group.hub.name
+  target_resource_id   = azurerm_virtual_network.mgmt.id
+  storage_account_id   = azurerm_storage_account.flow_logs.id
+  enabled              = true
+  location             = var.location
+  tags                 = local.tags
 
   retention_policy {
     enabled = true
@@ -90,7 +88,6 @@ resource "azurerm_monitor_diagnostic_setting" "firewall" {
   enabled_log { category = "AZFWNatRule" }
   enabled_log { category = "AZFWThreatIntel" }
   enabled_log { category = "AZFWIdpsSignature" }
-  enabled_log { category = "AZFWDnsProxy" }
 
 }
 
