@@ -178,9 +178,9 @@ resource "azurerm_subnet_route_table_association" "app" {
 }
 
 resource "azurerm_subnet_route_table_association" "mgmt" {
-  for_each = azurerm_subnet.mgmt
+  for_each = local.mgmt_subnet_config
 
-  subnet_id      = each.value.id
+  subnet_id      = azurerm_subnet.mgmt[each.key].id
   route_table_id = azurerm_route_table.mgmt.id
 }
 
@@ -199,16 +199,16 @@ resource "azurerm_network_security_group" "mgmt" {
 }
 
 resource "azurerm_subnet_network_security_group_association" "app" {
-  for_each = azurerm_subnet.app
+  for_each = local.app_subnet_config
 
-  subnet_id                 = each.value.id
+  subnet_id                 = azurerm_subnet.app[each.key].id
   network_security_group_id = azurerm_network_security_group.app.id
 }
 
 resource "azurerm_subnet_network_security_group_association" "mgmt" {
-  for_each = azurerm_subnet.mgmt
+  for_each = local.mgmt_subnet_config
 
-  subnet_id                 = each.value.id
+  subnet_id                 = azurerm_subnet.mgmt[each.key].id
   network_security_group_id = azurerm_network_security_group.mgmt.id
 }
 

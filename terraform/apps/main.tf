@@ -64,14 +64,14 @@ resource "azurerm_service_plan" "apps" {
 
 data "archive_file" "placeholder" {
   type        = "zip"
-  source_dir  = "${path.root}/../apps/placeholder"
-  output_path = "${path.root}/../apps/placeholder.zip"
+  source_dir  = "${path.root}/../../apps/placeholder"
+  output_path = "${path.root}/../../apps/placeholder.zip"
 }
 
 data "archive_file" "status_page" {
   type        = "zip"
-  source_dir  = "${path.root}/../apps/status-page"
-  output_path = "${path.root}/../apps/status-page.zip"
+  source_dir  = "${path.root}/../../apps/status-page"
+  output_path = "${path.root}/../../apps/status-page.zip"
 }
 
 resource "azurerm_linux_web_app" "hr" {

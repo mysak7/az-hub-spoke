@@ -21,8 +21,6 @@ resource "azurerm_storage_account" "flow_logs" {
   tags                     = local.tags
 }
 
-# Azure auto-creates NetworkWatcher_<region> in NetworkWatcherRG when VNets are deployed.
-# Import before first apply: terraform import azurerm_network_watcher.this /subscriptions/<sub>/resourceGroups/NetworkWatcherRG/providers/Microsoft.Network/networkWatchers/NetworkWatcher_<region>
 resource "azurerm_network_watcher" "this" {
   name                = "nw-${var.environment}-${var.location_short}"
   location            = azurerm_resource_group.network.location
