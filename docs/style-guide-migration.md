@@ -191,7 +191,7 @@ Follows the style guide's exact naming scheme:
 
 | Component | Value |
 |---|---|
-| Resource group | `rg-dev-terraform-tfstate` |
+| Resource group | `az-hub-spoke-tfstate-rg` |
 | Storage account | `stdevterraformtfstate` |
 | Container | `tfstate-hub-spoke` |
 | State key | `dev.terraform.tfstate` |
