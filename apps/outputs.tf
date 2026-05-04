@@ -1,38 +1,3 @@
-output "hub_vnet_id" {
-  description = "Resource ID of the Hub VNet."
-  value       = azurerm_virtual_network.hub.id
-}
-
-output "firewall_private_ip" {
-  description = "Private IP of the Azure Firewall."
-  value       = azurerm_firewall.this.ip_configuration[0].private_ip_address
-}
-
-output "firewall_public_ip" {
-  description = "Public IP of the Azure Firewall."
-  value       = azurerm_public_ip.firewall.ip_address
-}
-
-output "bastion_public_ip" {
-  description = "Public IP of Azure Bastion."
-  value       = azurerm_public_ip.bastion.ip_address
-}
-
-output "app_vnet_id" {
-  description = "Resource ID of the App Spoke VNet."
-  value       = azurerm_virtual_network.app.id
-}
-
-output "mgmt_vnet_id" {
-  description = "Resource ID of the Management Spoke VNet."
-  value       = azurerm_virtual_network.mgmt.id
-}
-
-output "log_analytics_workspace_id" {
-  description = "Resource ID of the Log Analytics workspace."
-  value       = azurerm_log_analytics_workspace.this.id
-}
-
 output "status_page_url" {
   description = "Public URL of the Entra ID-protected access status page."
   value       = "https://${azurerm_linux_web_app.status_page.default_hostname}"

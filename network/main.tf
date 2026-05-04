@@ -5,14 +5,6 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "4.20.0"
     }
-    azuread = {
-      source  = "hashicorp/azuread"
-      version = "~> 3.0"
-    }
-    archive = {
-      source  = "hashicorp/archive"
-      version = "~> 2.0"
-    }
   }
 }
 
@@ -20,8 +12,6 @@ provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
 }
-
-provider "azuread" {}
 
 locals {
   tags = {
@@ -57,73 +47,61 @@ locals {
   }
 }
 
-resource "azurerm_resource_group" "hub" {
-  name     = "rg-${var.environment}-${var.location_short}-hub"
-  location = var.location
-  tags     = local.tags
-}
-
-resource "azurerm_resource_group" "app" {
-  name     = "rg-${var.environment}-${var.location_short}-app"
-  location = var.location
-  tags     = local.tags
-}
-
-resource "azurerm_resource_group" "mgmt" {
-  name     = "rg-${var.environment}-${var.location_short}-mgmt"
+resource "azurerm_resource_group" "network" {
+  name     = "az-hub-spoke-${var.environment}-network"
   location = var.location
   tags     = local.tags
 }
 
 resource "azurerm_virtual_network" "hub" {
   name                = "vnet-${var.environment}-${var.location_short}-hub"
-  location            = azurerm_resource_group.hub.location
-  resource_group_name = azurerm_resource_group.hub.name
+  location            = azurerm_resource_group.network.location
+  resource_group_name = azurerm_resource_group.network.name
   address_space       = ["10.0.0.0/16"]
   tags                = local.tags
 }
 
 resource "azurerm_virtual_network" "app" {
   name                = "vnet-${var.environment}-${var.location_short}-app"
-  location            = azurerm_resource_group.app.location
-  resource_group_name = azurerm_resource_group.app.name
+  location            = azurerm_resource_group.network.location
+  resource_group_name = azurerm_resource_group.network.name
   address_space       = ["10.1.0.0/16"]
   tags                = local.tags
 }
 
 resource "azurerm_virtual_network" "mgmt" {
   name                = "vnet-${var.environment}-${var.location_short}-mgmt"
-  location            = azurerm_resource_group.mgmt.location
-  resource_group_name = azurerm_resource_group.mgmt.name
+  location            = azurerm_resource_group.network.location
+  resource_group_name = azurerm_resource_group.network.name
   address_space       = ["10.2.0.0/16"]
   tags                = local.tags
 }
 
-// AzureFirewallSubnet and AzureBastionSubnet are fixed names required by Azure
+# AzureFirewallSubnet and AzureBastionSubnet are fixed names required by Azure
 resource "azurerm_subnet" "hub_firewall" {
   name                 = "AzureFirewallSubnet"
-  resource_group_name  = azurerm_resource_group.hub.name
+  resource_group_name  = azurerm_resource_group.network.name
   virtual_network_name = azurerm_virtual_network.hub.name
   address_prefixes     = ["10.0.1.0/26"]
 }
 
 resource "azurerm_subnet" "hub_bastion" {
   name                 = "AzureBastionSubnet"
-  resource_group_name  = azurerm_resource_group.hub.name
+  resource_group_name  = azurerm_resource_group.network.name
   virtual_network_name = azurerm_virtual_network.hub.name
   address_prefixes     = ["10.0.2.0/26"]
 }
 
 resource "azurerm_subnet" "hub_shared" {
   name                 = "sn-shared"
-  resource_group_name  = azurerm_resource_group.hub.name
+  resource_group_name  = azurerm_resource_group.network.name
   virtual_network_name = azurerm_virtual_network.hub.name
   address_prefixes     = ["10.0.3.0/24"]
 }
 
 resource "azurerm_subnet" "hub_dns" {
   name                 = "sn-dns"
-  resource_group_name  = azurerm_resource_group.hub.name
+  resource_group_name  = azurerm_resource_group.network.name
   virtual_network_name = azurerm_virtual_network.hub.name
   address_prefixes     = ["10.0.4.0/24"]
 }
@@ -132,25 +110,40 @@ resource "azurerm_subnet" "app" {
   for_each = local.app_subnet_config
 
   name                              = each.value.name
-  resource_group_name               = azurerm_resource_group.app.name
+  resource_group_name               = azurerm_resource_group.network.name
   virtual_network_name              = azurerm_virtual_network.app.name
   address_prefixes                  = [each.value.cidr]
   private_endpoint_network_policies = each.value.private_endpoint_network_policies
+}
+
+resource "azurerm_subnet" "webapps" {
+  name                 = "snet-webapps"
+  resource_group_name  = azurerm_resource_group.network.name
+  virtual_network_name = azurerm_virtual_network.app.name
+  address_prefixes     = ["10.1.4.0/24"]
+
+  delegation {
+    name = "app-service"
+    service_delegation {
+      name    = "Microsoft.Web/serverFarms"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
+    }
+  }
 }
 
 resource "azurerm_subnet" "mgmt" {
   for_each = local.mgmt_subnet_config
 
   name                 = each.value.name
-  resource_group_name  = azurerm_resource_group.mgmt.name
+  resource_group_name  = azurerm_resource_group.network.name
   virtual_network_name = azurerm_virtual_network.mgmt.name
   address_prefixes     = [each.value.cidr]
 }
 
 resource "azurerm_route_table" "app" {
   name                          = "rt-${var.environment}-${var.location_short}-app"
-  location                      = azurerm_resource_group.app.location
-  resource_group_name           = azurerm_resource_group.app.name
+  location                      = azurerm_resource_group.network.location
+  resource_group_name           = azurerm_resource_group.network.name
   bgp_route_propagation_enabled = false
   tags                          = local.tags
 
@@ -164,8 +157,8 @@ resource "azurerm_route_table" "app" {
 
 resource "azurerm_route_table" "mgmt" {
   name                          = "rt-${var.environment}-${var.location_short}-mgmt"
-  location                      = azurerm_resource_group.mgmt.location
-  resource_group_name           = azurerm_resource_group.mgmt.name
+  location                      = azurerm_resource_group.network.location
+  resource_group_name           = azurerm_resource_group.network.name
   bgp_route_propagation_enabled = false
   tags                          = local.tags
 
@@ -193,15 +186,15 @@ resource "azurerm_subnet_route_table_association" "mgmt" {
 
 resource "azurerm_network_security_group" "app" {
   name                = "nsg-${var.environment}-${var.location_short}-app"
-  location            = azurerm_resource_group.app.location
-  resource_group_name = azurerm_resource_group.app.name
+  location            = azurerm_resource_group.network.location
+  resource_group_name = azurerm_resource_group.network.name
   tags                = local.tags
 }
 
 resource "azurerm_network_security_group" "mgmt" {
   name                = "nsg-${var.environment}-${var.location_short}-mgmt"
-  location            = azurerm_resource_group.mgmt.location
-  resource_group_name = azurerm_resource_group.mgmt.name
+  location            = azurerm_resource_group.network.location
+  resource_group_name = azurerm_resource_group.network.name
   tags                = local.tags
 }
 
@@ -221,7 +214,7 @@ resource "azurerm_subnet_network_security_group_association" "mgmt" {
 
 resource "azurerm_virtual_network_peering" "hub_to_app" {
   name                         = "peer-hub-to-app"
-  resource_group_name          = azurerm_resource_group.hub.name
+  resource_group_name          = azurerm_resource_group.network.name
   virtual_network_name         = azurerm_virtual_network.hub.name
   remote_virtual_network_id    = azurerm_virtual_network.app.id
   allow_forwarded_traffic      = true
@@ -231,7 +224,7 @@ resource "azurerm_virtual_network_peering" "hub_to_app" {
 
 resource "azurerm_virtual_network_peering" "app_to_hub" {
   name                         = "peer-app-to-hub"
-  resource_group_name          = azurerm_resource_group.app.name
+  resource_group_name          = azurerm_resource_group.network.name
   virtual_network_name         = azurerm_virtual_network.app.name
   remote_virtual_network_id    = azurerm_virtual_network.hub.id
   allow_forwarded_traffic      = true
@@ -241,7 +234,7 @@ resource "azurerm_virtual_network_peering" "app_to_hub" {
 
 resource "azurerm_virtual_network_peering" "hub_to_mgmt" {
   name                         = "peer-hub-to-mgmt"
-  resource_group_name          = azurerm_resource_group.hub.name
+  resource_group_name          = azurerm_resource_group.network.name
   virtual_network_name         = azurerm_virtual_network.hub.name
   remote_virtual_network_id    = azurerm_virtual_network.mgmt.id
   allow_forwarded_traffic      = true
@@ -251,7 +244,7 @@ resource "azurerm_virtual_network_peering" "hub_to_mgmt" {
 
 resource "azurerm_virtual_network_peering" "mgmt_to_hub" {
   name                         = "peer-mgmt-to-hub"
-  resource_group_name          = azurerm_resource_group.mgmt.name
+  resource_group_name          = azurerm_resource_group.network.name
   virtual_network_name         = azurerm_virtual_network.mgmt.name
   remote_virtual_network_id    = azurerm_virtual_network.hub.id
   allow_forwarded_traffic      = true

@@ -1,7 +1,7 @@
 resource "azurerm_public_ip" "firewall" {
   name                = "pip-${var.environment}-${var.location_short}-afw"
-  resource_group_name = azurerm_resource_group.hub.name
-  location            = azurerm_resource_group.hub.location
+  resource_group_name = azurerm_resource_group.network.name
+  location            = azurerm_resource_group.network.location
   allocation_method   = "Static"
   sku                 = "Standard"
   tags                = local.tags
@@ -9,8 +9,8 @@ resource "azurerm_public_ip" "firewall" {
 
 resource "azurerm_firewall_policy" "this" {
   name                = "afwp-${var.environment}-${var.location_short}"
-  resource_group_name = azurerm_resource_group.hub.name
-  location            = azurerm_resource_group.hub.location
+  resource_group_name = azurerm_resource_group.network.name
+  location            = azurerm_resource_group.network.location
   sku                 = "Standard"
   tags                = local.tags
 }
@@ -66,8 +66,8 @@ resource "azurerm_firewall_policy_rule_collection_group" "this" {
 
 resource "azurerm_firewall" "this" {
   name                = "afw-${var.environment}-${var.location_short}"
-  location            = azurerm_resource_group.hub.location
-  resource_group_name = azurerm_resource_group.hub.name
+  location            = azurerm_resource_group.network.location
+  resource_group_name = azurerm_resource_group.network.name
   sku_name            = "AZFW_VNet"
   sku_tier            = "Standard"
   firewall_policy_id  = azurerm_firewall_policy.this.id

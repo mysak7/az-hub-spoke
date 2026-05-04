@@ -1,5 +1,45 @@
+terraform {
+  backend "azurerm" {}
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "4.20.0"
+    }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+  subscription_id = var.subscription_id
+}
+
+provider "azuread" {}
+
+data "terraform_remote_state" "network" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = var.backend_resource_group_name
+    storage_account_name = var.backend_storage_account_name
+    container_name       = var.backend_container_name
+    key                  = var.network_state_key
+  }
+}
+
 locals {
-  # 6-char suffix from subscription ID keeps App Service names globally unique
+  tags = {
+    Project     = "az-hub-spoke"
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
+
   name_suffix      = substr(replace(var.subscription_id, "-", ""), 0, 6)
   status_page_name = "app-status-${var.environment}-${var.location_short}-${local.name_suffix}"
   hr_app_name      = "app-hr-${var.environment}-${var.location_short}-${local.name_suffix}"
@@ -7,25 +47,15 @@ locals {
   admin_app_name   = "app-admin-${var.environment}-${var.location_short}-${local.name_suffix}"
 }
 
-# Dedicated subnet for App Service regional VNet integration
-resource "azurerm_subnet" "webapps" {
-  name                 = "snet-webapps"
-  resource_group_name  = azurerm_resource_group.app.name
-  virtual_network_name = azurerm_virtual_network.app.name
-  address_prefixes     = ["10.1.4.0/24"]
-
-  delegation {
-    name = "app-service"
-    service_delegation {
-      name    = "Microsoft.Web/serverFarms"
-      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
-    }
-  }
+resource "azurerm_resource_group" "apps" {
+  name     = "az-hub-spoke-${var.environment}-apps"
+  location = var.location
+  tags     = local.tags
 }
 
 resource "azurerm_service_plan" "apps" {
   name                = "asp-${var.environment}-${var.location_short}-apps"
-  resource_group_name = azurerm_resource_group.app.name
+  resource_group_name = azurerm_resource_group.apps.name
   location            = var.location
   os_type             = "Linux"
   sku_name            = "S1"
@@ -34,22 +64,22 @@ resource "azurerm_service_plan" "apps" {
 
 data "archive_file" "placeholder" {
   type        = "zip"
-  source_dir  = "${path.root}/apps/placeholder"
-  output_path = "${path.root}/apps/placeholder.zip"
+  source_dir  = "${path.root}/../apps/placeholder"
+  output_path = "${path.root}/../apps/placeholder.zip"
 }
 
 data "archive_file" "status_page" {
   type        = "zip"
-  source_dir  = "${path.root}/apps/status-page"
-  output_path = "${path.root}/apps/status-page.zip"
+  source_dir  = "${path.root}/../apps/status-page"
+  output_path = "${path.root}/../apps/status-page.zip"
 }
 
 resource "azurerm_linux_web_app" "hr" {
   name                      = local.hr_app_name
-  resource_group_name       = azurerm_resource_group.app.name
+  resource_group_name       = azurerm_resource_group.apps.name
   location                  = var.location
   service_plan_id           = azurerm_service_plan.apps.id
-  virtual_network_subnet_id = azurerm_subnet.webapps.id
+  virtual_network_subnet_id = data.terraform_remote_state.network.outputs.webapps_subnet_id
   https_only                = true
   zip_deploy_file           = data.archive_file.placeholder.output_path
 
@@ -90,10 +120,10 @@ resource "azurerm_linux_web_app" "hr" {
 
 resource "azurerm_linux_web_app" "finance" {
   name                      = local.finance_app_name
-  resource_group_name       = azurerm_resource_group.app.name
+  resource_group_name       = azurerm_resource_group.apps.name
   location                  = var.location
   service_plan_id           = azurerm_service_plan.apps.id
-  virtual_network_subnet_id = azurerm_subnet.webapps.id
+  virtual_network_subnet_id = data.terraform_remote_state.network.outputs.webapps_subnet_id
   https_only                = true
   zip_deploy_file           = data.archive_file.placeholder.output_path
 
@@ -134,10 +164,10 @@ resource "azurerm_linux_web_app" "finance" {
 
 resource "azurerm_linux_web_app" "admin_portal" {
   name                      = local.admin_app_name
-  resource_group_name       = azurerm_resource_group.app.name
+  resource_group_name       = azurerm_resource_group.apps.name
   location                  = var.location
   service_plan_id           = azurerm_service_plan.apps.id
-  virtual_network_subnet_id = azurerm_subnet.webapps.id
+  virtual_network_subnet_id = data.terraform_remote_state.network.outputs.webapps_subnet_id
   https_only                = true
   zip_deploy_file           = data.archive_file.placeholder.output_path
 
@@ -178,7 +208,7 @@ resource "azurerm_linux_web_app" "admin_portal" {
 
 resource "azurerm_linux_web_app" "status_page" {
   name                = local.status_page_name
-  resource_group_name = azurerm_resource_group.app.name
+  resource_group_name = azurerm_resource_group.apps.name
   location            = var.location
   service_plan_id     = azurerm_service_plan.apps.id
   https_only          = true

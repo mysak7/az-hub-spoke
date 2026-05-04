@@ -123,19 +123,19 @@ resource "azuread_application_password" "admin_portal" {
 # ── Entra ID groups ─────────────────────────────────────────────────────────
 
 resource "azuread_group" "hr_users" {
-  display_name     = "grp-hr-users"
+  display_name     = "az-hub-spoke-hr-users"
   security_enabled = true
   mail_enabled     = false
 }
 
 resource "azuread_group" "finance_users" {
-  display_name     = "grp-finance-users"
+  display_name     = "az-hub-spoke-finance-users"
   security_enabled = true
   mail_enabled     = false
 }
 
 resource "azuread_group" "platform_admins" {
-  display_name     = "grp-platform-admins"
+  display_name     = "az-hub-spoke-platform-admins"
   security_enabled = true
   mail_enabled     = false
 }
