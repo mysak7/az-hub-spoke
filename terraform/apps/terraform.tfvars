@@ -1,0 +1,8 @@
+subscription_id              = "5ffa7688-ecf9-4b9e-8f17-ab20790b0673"
+environment                  = "dev"
+location                     = "swedencentral"
+location_short               = "swc"
+backend_resource_group_name  = "az-hub-spoke-tfstate-rg"
+backend_storage_account_name = "stdevtfstate5ffa7688"
+backend_container_name       = "tfstate-hub-spoke"
+network_state_key            = "dev-network.tfstate"

@@ -1,0 +1,5 @@
+subscription_id = "5ffa7688-ecf9-4b9e-8f17-ab20790b0673"
+environment     = "dev"
+location        = "swedencentral"
+location_short  = "swc"
+alert_email     = "michal.burdik@gmail.com"
