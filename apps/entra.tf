@@ -52,6 +52,19 @@ resource "azuread_application" "hr_portal" {
   display_name     = "app-hr-portal-${var.environment}"
   sign_in_audience = "AzureADMyOrg"
 
+  group_membership_claims = ["SecurityGroup"]
+
+  optional_claims {
+    id_token {
+      name                  = "groups"
+      additional_properties = []
+    }
+    access_token {
+      name                  = "groups"
+      additional_properties = []
+    }
+  }
+
   web {
     redirect_uris = [
       "https://${local.hr_app_name}.azurewebsites.net/.auth/login/aad/callback"
@@ -76,6 +89,19 @@ resource "azuread_application" "finance_dashboard" {
   display_name     = "app-finance-dashboard-${var.environment}"
   sign_in_audience = "AzureADMyOrg"
 
+  group_membership_claims = ["SecurityGroup"]
+
+  optional_claims {
+    id_token {
+      name                  = "groups"
+      additional_properties = []
+    }
+    access_token {
+      name                  = "groups"
+      additional_properties = []
+    }
+  }
+
   web {
     redirect_uris = [
       "https://${local.finance_app_name}.azurewebsites.net/.auth/login/aad/callback"
@@ -99,6 +125,19 @@ resource "azuread_application_password" "finance_dashboard" {
 resource "azuread_application" "admin_portal" {
   display_name     = "app-admin-portal-${var.environment}"
   sign_in_audience = "AzureADMyOrg"
+
+  group_membership_claims = ["SecurityGroup"]
+
+  optional_claims {
+    id_token {
+      name                  = "groups"
+      additional_properties = []
+    }
+    access_token {
+      name                  = "groups"
+      additional_properties = []
+    }
+  }
 
   web {
     redirect_uris = [

@@ -13,6 +13,7 @@ APPS = [
         "description": "Human Resources management and employee records",
         "url_env": "APP_HR_URL",
         "group_env": "GROUP_HR_ID",
+        "group_name": "HR Users",
     },
     {
         "key": "finance",
@@ -20,6 +21,7 @@ APPS = [
         "description": "Financial reporting, budgets and analytics",
         "url_env": "APP_FINANCE_URL",
         "group_env": "GROUP_FINANCE_ID",
+        "group_name": "Finance Users",
     },
     {
         "key": "admin",
@@ -27,6 +29,7 @@ APPS = [
         "description": "Platform administration and configuration",
         "url_env": "APP_ADMIN_URL",
         "group_env": "GROUP_ADMINS_ID",
+        "group_name": "Platform Admins",
     },
 ]
 
@@ -54,10 +57,13 @@ def index():
     user = parse_principal(header) if header else None
 
     app_statuses = []
+    user_groups = []
     for cfg in APPS:
         group_id = os.environ.get(cfg["group_env"], "")
         url = os.environ.get(cfg["url_env"], "#")
         has_access = bool(group_id) and bool(user) and group_id in user["groups"]
+        if has_access:
+            user_groups.append(cfg["group_name"])
         app_statuses.append(
             {
                 "key": cfg["key"],
@@ -68,7 +74,7 @@ def index():
             }
         )
 
-    return render_template("index.html", user=user, apps=app_statuses)
+    return render_template("index.html", user=user, apps=app_statuses, user_groups=user_groups)
 
 
 if __name__ == "__main__":
