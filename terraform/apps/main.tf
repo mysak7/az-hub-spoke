@@ -58,7 +58,7 @@ resource "azurerm_service_plan" "apps" {
   resource_group_name = azurerm_resource_group.apps.name
   location            = var.location
   os_type             = "Linux"
-  sku_name            = "S1"
+  sku_name            = "B1"
   tags                = local.tags
 }
 
@@ -75,13 +75,11 @@ data "archive_file" "status_page" {
 }
 
 resource "azurerm_linux_web_app" "hr" {
-  name                      = local.hr_app_name
-  resource_group_name       = azurerm_resource_group.apps.name
-  location                  = var.location
-  service_plan_id           = azurerm_service_plan.apps.id
-  virtual_network_subnet_id = data.terraform_remote_state.network.outputs.webapps_subnet_id
-  https_only                = true
-  zip_deploy_file           = data.archive_file.placeholder.output_path
+  name                = local.hr_app_name
+  resource_group_name = azurerm_resource_group.apps.name
+  location            = var.location
+  service_plan_id     = azurerm_service_plan.apps.id
+  https_only          = true
 
   site_config {
     app_command_line = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
@@ -119,13 +117,11 @@ resource "azurerm_linux_web_app" "hr" {
 }
 
 resource "azurerm_linux_web_app" "finance" {
-  name                      = local.finance_app_name
-  resource_group_name       = azurerm_resource_group.apps.name
-  location                  = var.location
-  service_plan_id           = azurerm_service_plan.apps.id
-  virtual_network_subnet_id = data.terraform_remote_state.network.outputs.webapps_subnet_id
-  https_only                = true
-  zip_deploy_file           = data.archive_file.placeholder.output_path
+  name                = local.finance_app_name
+  resource_group_name = azurerm_resource_group.apps.name
+  location            = var.location
+  service_plan_id     = azurerm_service_plan.apps.id
+  https_only          = true
 
   site_config {
     app_command_line = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
@@ -163,13 +159,11 @@ resource "azurerm_linux_web_app" "finance" {
 }
 
 resource "azurerm_linux_web_app" "admin_portal" {
-  name                      = local.admin_app_name
-  resource_group_name       = azurerm_resource_group.apps.name
-  location                  = var.location
-  service_plan_id           = azurerm_service_plan.apps.id
-  virtual_network_subnet_id = data.terraform_remote_state.network.outputs.webapps_subnet_id
-  https_only                = true
-  zip_deploy_file           = data.archive_file.placeholder.output_path
+  name                = local.admin_app_name
+  resource_group_name = azurerm_resource_group.apps.name
+  location            = var.location
+  service_plan_id     = azurerm_service_plan.apps.id
+  https_only          = true
 
   site_config {
     app_command_line = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
@@ -212,7 +206,6 @@ resource "azurerm_linux_web_app" "status_page" {
   location            = var.location
   service_plan_id     = azurerm_service_plan.apps.id
   https_only          = true
-  zip_deploy_file     = data.archive_file.status_page.output_path
 
   site_config {
     app_command_line = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
