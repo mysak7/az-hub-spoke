@@ -81,12 +81,19 @@ resource "azurerm_virtual_network" "mgmt" {
   tags                = local.tags
 }
 
-# AzureFirewallSubnet and AzureBastionSubnet are fixed names required by Azure
+# AzureFirewallSubnet, AzureFirewallManagementSubnet, and AzureBastionSubnet are fixed names required by Azure
 resource "azurerm_subnet" "hub_firewall" {
   name                 = "AzureFirewallSubnet"
   resource_group_name  = azurerm_resource_group.network.name
   virtual_network_name = azurerm_virtual_network.hub.name
   address_prefixes     = ["10.0.1.0/26"]
+}
+
+resource "azurerm_subnet" "hub_firewall_mgmt" {
+  name                 = "AzureFirewallManagementSubnet"
+  resource_group_name  = azurerm_resource_group.network.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = ["10.0.5.0/26"]
 }
 
 resource "azurerm_subnet" "hub_bastion" {

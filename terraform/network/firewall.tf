@@ -7,11 +7,20 @@ resource "azurerm_public_ip" "firewall" {
   tags                = local.tags
 }
 
+resource "azurerm_public_ip" "firewall_mgmt" {
+  name                = "pip-${var.environment}-${var.location_short}-afw-mgmt"
+  resource_group_name = azurerm_resource_group.network.name
+  location            = azurerm_resource_group.network.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  tags                = local.tags
+}
+
 resource "azurerm_firewall_policy" "this" {
   name                = "afwp-${var.environment}-${var.location_short}"
   resource_group_name = azurerm_resource_group.network.name
   location            = azurerm_resource_group.network.location
-  sku                 = "Standard"
+  sku                 = "Basic"
   tags                = local.tags
 }
 
@@ -41,27 +50,6 @@ resource "azurerm_firewall_policy_rule_collection_group" "this" {
       destination_ports     = ["53"]
     }
   }
-
-  application_rule_collection {
-    name     = "arc-allow-azure-services"
-    priority = 200
-    action   = "Allow"
-
-    rule {
-      name             = "allow-azure-management"
-      source_addresses = ["10.0.0.0/8"]
-      destination_fqdns = [
-        "*.azure.com",
-        "*.microsoft.com",
-        "*.azure.net",
-        "*.microsoftonline.com",
-      ]
-      protocols {
-        type = "Https"
-        port = 443
-      }
-    }
-  }
 }
 
 resource "azurerm_firewall" "this" {
@@ -69,7 +57,7 @@ resource "azurerm_firewall" "this" {
   location            = azurerm_resource_group.network.location
   resource_group_name = azurerm_resource_group.network.name
   sku_name            = "AZFW_VNet"
-  sku_tier            = "Standard"
+  sku_tier            = "Basic"
   firewall_policy_id  = azurerm_firewall_policy.this.id
   tags                = local.tags
 
@@ -77,5 +65,11 @@ resource "azurerm_firewall" "this" {
     name                 = "ipconfig"
     subnet_id            = azurerm_subnet.hub_firewall.id
     public_ip_address_id = azurerm_public_ip.firewall.id
+  }
+
+  management_ip_configuration {
+    name                 = "mgmt-ipconfig"
+    subnet_id            = azurerm_subnet.hub_firewall_mgmt.id
+    public_ip_address_id = azurerm_public_ip.firewall_mgmt.id
   }
 }

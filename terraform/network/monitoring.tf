@@ -82,10 +82,7 @@ resource "azurerm_monitor_diagnostic_setting" "firewall" {
   log_analytics_workspace_id = azurerm_log_analytics_workspace.this.id
 
   enabled_log { category = "AZFWNetworkRule" }
-  enabled_log { category = "AZFWApplicationRule" }
   enabled_log { category = "AZFWNatRule" }
-  enabled_log { category = "AZFWThreatIntel" }
-  enabled_log { category = "AZFWIdpsSignature" }
 }
 
 resource "azurerm_monitor_diagnostic_setting" "bastion" {
