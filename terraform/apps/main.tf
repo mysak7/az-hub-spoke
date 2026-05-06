@@ -13,6 +13,10 @@ terraform {
       source  = "hashicorp/archive"
       version = "~> 2.0"
     }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -281,4 +285,56 @@ resource "azurerm_linux_web_app" "status_page" {
   }
 
   tags = local.tags
+}
+
+resource "null_resource" "deploy_hr" {
+  triggers = {
+    zip_hash = data.archive_file.placeholder.output_sha256
+    app_id   = azurerm_linux_web_app.hr.id
+  }
+
+  provisioner "local-exec" {
+    command = "az webapp deploy --resource-group ${azurerm_resource_group.apps.name} --name ${azurerm_linux_web_app.hr.name} --src-path ${data.archive_file.placeholder.output_path} --type zip"
+  }
+
+  depends_on = [azurerm_linux_web_app.hr]
+}
+
+resource "null_resource" "deploy_finance" {
+  triggers = {
+    zip_hash = data.archive_file.placeholder.output_sha256
+    app_id   = azurerm_linux_web_app.finance.id
+  }
+
+  provisioner "local-exec" {
+    command = "az webapp deploy --resource-group ${azurerm_resource_group.apps.name} --name ${azurerm_linux_web_app.finance.name} --src-path ${data.archive_file.placeholder.output_path} --type zip"
+  }
+
+  depends_on = [azurerm_linux_web_app.finance]
+}
+
+resource "null_resource" "deploy_admin" {
+  triggers = {
+    zip_hash = data.archive_file.placeholder.output_sha256
+    app_id   = azurerm_linux_web_app.admin_portal.id
+  }
+
+  provisioner "local-exec" {
+    command = "az webapp deploy --resource-group ${azurerm_resource_group.apps.name} --name ${azurerm_linux_web_app.admin_portal.name} --src-path ${data.archive_file.placeholder.output_path} --type zip"
+  }
+
+  depends_on = [azurerm_linux_web_app.admin_portal]
+}
+
+resource "null_resource" "deploy_status_page" {
+  triggers = {
+    zip_hash = data.archive_file.status_page.output_sha256
+    app_id   = azurerm_linux_web_app.status_page.id
+  }
+
+  provisioner "local-exec" {
+    command = "az webapp deploy --resource-group ${azurerm_resource_group.apps.name} --name ${azurerm_linux_web_app.status_page.name} --src-path ${data.archive_file.status_page.output_path} --type zip"
+  }
+
+  depends_on = [azurerm_linux_web_app.status_page]
 }
