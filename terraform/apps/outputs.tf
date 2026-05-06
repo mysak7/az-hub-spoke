@@ -18,6 +18,11 @@ output "admin_app_url" {
   value       = "https://${azurerm_linux_web_app.admin_portal.default_hostname}"
 }
 
+output "frontdoor_url" {
+  description = "Azure Front Door endpoint URL — entry point chráněný WAF."
+  value       = "https://${azurerm_cdn_frontdoor_endpoint.main.host_name}"
+}
+
 output "entra_groups" {
   description = "Entra ID group object IDs for manual user assignment."
   value = {

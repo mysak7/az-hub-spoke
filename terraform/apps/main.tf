@@ -82,9 +82,18 @@ resource "azurerm_linux_web_app" "hr" {
   https_only          = true
 
   site_config {
-    app_command_line = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+    app_command_line              = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+    ip_restriction_default_action = "Deny"
+
     application_stack {
       python_version = "3.11"
+    }
+
+    ip_restriction {
+      name        = "AllowFrontDoor"
+      service_tag = "AzureFrontDoor.Backend"
+      action      = "Allow"
+      priority    = 100
     }
   }
 
@@ -124,9 +133,18 @@ resource "azurerm_linux_web_app" "finance" {
   https_only          = true
 
   site_config {
-    app_command_line = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+    app_command_line              = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+    ip_restriction_default_action = "Deny"
+
     application_stack {
       python_version = "3.11"
+    }
+
+    ip_restriction {
+      name        = "AllowFrontDoor"
+      service_tag = "AzureFrontDoor.Backend"
+      action      = "Allow"
+      priority    = 100
     }
   }
 
@@ -166,9 +184,18 @@ resource "azurerm_linux_web_app" "admin_portal" {
   https_only          = true
 
   site_config {
-    app_command_line = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+    app_command_line              = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+    ip_restriction_default_action = "Deny"
+
     application_stack {
       python_version = "3.11"
+    }
+
+    ip_restriction {
+      name        = "AllowFrontDoor"
+      service_tag = "AzureFrontDoor.Backend"
+      action      = "Allow"
+      priority    = 100
     }
   }
 
@@ -208,9 +235,18 @@ resource "azurerm_linux_web_app" "status_page" {
   https_only          = true
 
   site_config {
-    app_command_line = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+    app_command_line              = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+    ip_restriction_default_action = "Deny"
+
     application_stack {
       python_version = "3.11"
+    }
+
+    ip_restriction {
+      name        = "AllowFrontDoor"
+      service_tag = "AzureFrontDoor.Backend"
+      action      = "Allow"
+      priority    = 100
     }
   }
 
