@@ -10,10 +10,10 @@
 
 | Layer | Monthly est. |
 |---|---|
-| Network (Firewall, Bastion, Peering, DNS) | ~$250–280 |
+| Network (Firewall, Bastion, Peering, DNS) | ~$115–145 |
 | Monitoring (Log Analytics, Flow Logs, Storage) | ~$10–25 |
 | Apps (App Service, Front Door, WAF) | ~$65–75 |
-| **Total** | **~$325–380 / month** |
+| **Total** | **~$190–245 / month** |
 
 ---
 
@@ -24,14 +24,14 @@
 | Resource | SKU | Billing model | $/month est. |
 |---|---|---|---|
 | Azure Firewall | Basic | $0.113/hr deployment + $0.016/GB processed | ~$82 + traffic |
-| Azure Bastion | Standard | ~$0.19/hr/scale-unit (2 units default) | ~$275 |
+| Azure Bastion | Basic | ~$0.19/hr (1 scale unit) | ~$138 |
 | Public IP — firewall | Standard Static | $0.005/hr | ~$3.65 |
 | Public IP — firewall mgmt | Standard Static | $0.005/hr | ~$3.65 |
 | Public IP — bastion | Standard Static | $0.005/hr | ~$3.65 |
 | VNet Peering ×4 | Intra-region | $0.01/GB transferred | ~$1–5 |
 | Private DNS Zones ×2 | — | $0.40/zone/month + $0.40/million queries | ~$1 |
 
-> **Biggest single cost: Azure Bastion Standard.** With 2 scale units it runs ~$275/month even with zero sessions. Consider stopping Bastion when not actively using it, or dropping to Basic SKU (~$138/month, 1 scale unit, fewer features).
+> Bastion Basic loses file transfer and session recording vs Standard, but is fine for SSH/RDP access in a dev environment.
 
 ### Monitoring
 
@@ -59,9 +59,7 @@
 
 ## Cost Drivers & Optimisation Tips
 
-1. **Bastion Standard (~$275/month)** — biggest line item. Options:
-   - Switch to **Basic SKU** to save ~$137/month (loses file transfer and session recording).
-   - Deallocate Bastion when not in active use (it's not always-on infrastructure like the firewall).
+1. **Azure Bastion Basic (~$138/month)** — now on Basic SKU, saving ~$137/month vs Standard. Can deallocate when not in active use for further savings.
 
 2. **Azure Firewall Basic (~$82/month base)** — already on the cheapest tier. The switch from Standard saved ~$830/month. No further SKU reductions available; next step would be removing it entirely for a non-hub architecture.
 
@@ -77,8 +75,7 @@
 
 | Scenario | $/month | $/year |
 |---|---|---|
-| As-is (Standard Bastion) | ~$325–380 | ~$3,900–4,560 |
-| With Basic Bastion | ~$190–245 | ~$2,280–2,940 |
+| Current (Basic Bastion) | ~$190–245 | ~$2,280–2,940 |
 
 ---
 
